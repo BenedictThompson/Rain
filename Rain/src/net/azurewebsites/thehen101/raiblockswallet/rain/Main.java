@@ -66,7 +66,7 @@ public class Main {
 										// if they are there
 			publicKey = publicK.substring(24);
 		}
-		System.out.println(hexToBinary(publicKey));
+		String keyBinary = hexToBinary(publicKey);
 		byte[] bytes = hexStringToByteArray(publicKey);
 		final Blake2b blake2b = Blake2b.Digest.newInstance(5);  
 		blake2b.update(bytes);
@@ -88,6 +88,31 @@ public class Main {
 			}
 		}
 		System.out.println("checksum: " + checksum);
+		System.out.println(keyBinary.length());
+		String account = "";
+		
+		while (keyBinary.length() < 260)
+			keyBinary = "0" + keyBinary;
+		
+		System.out.println(keyBinary.length());
+		
+	    //for x in range(0,int(len(account.bin)/5)):
+	    //    # each 5-bit sequence = a base-32 character from account_map
+	    //    encode_account += account_lookup[account.bin[x*5:x*5+5]]
+		
+		for (int i = 0; i < keyBinary.length(); i += 5) {
+			String fiveBit = keyBinary.substring(i, i + 5);
+			for (int o = 0; o < ACCOUNT_LOOKUP.length; o++) {
+				String oo = ACCOUNT_LOOKUP[o];
+				if (oo.equals(fiveBit)) {
+					System.out.print(ACCOUNT_MAP.charAt(o) + " ");
+					System.out.println(fiveBit);
+					account += ACCOUNT_MAP.charAt(o);
+				}
+			}
+		}
+		
+		System.out.println("xrb_" + account + checksum);
 		
 		return "";
 	}
