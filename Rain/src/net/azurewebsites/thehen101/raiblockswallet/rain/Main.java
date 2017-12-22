@@ -21,8 +21,7 @@ public class Main {
 			System.out.println("algorithm: " + pk.getAlgorithm());
 			System.out.println("private key: " + bytesToHex(keys.getPrivate().getEncoded()));
 			System.out.println("public key: " + bytesToHex(keys.getPublic().getEncoded()));
-			System.out.println(publicKeyToXRBAddress(bytesToHex(keys.getPublic().getEncoded())));
-			System.out.println(publicKeyToXRBAddress("150884252008f27b92c4549ac3c654ac43c32b1c4c715c8518353068e09e098b".toUpperCase()));
+			System.out.println("xrb address: " + publicKeyToXRBAddress(bytesToHex(keys.getPublic().getEncoded())));
 			
 			
 			//byte[] publicBytes = Base64.decodeBase64(publicK);
@@ -45,7 +44,6 @@ public class Main {
 				bin = "0" + bin;
 			}
 			ACCOUNT_LOOKUP[i] = bin;
-			System.out.println(ACCOUNT_LOOKUP[i]);
 		}
 	}
 	
@@ -71,7 +69,6 @@ public class Main {
 		final Blake2b blake2b = Blake2b.Digest.newInstance(5);  
 		blake2b.update(bytes);
 		byte[] digest = swapEndian(blake2b.digest());
-		System.out.println(digest.length);
 		String bin = hexToBinary(bytesToHex(digest));
 		String checksum = "";
 		while (bin.length() < digest.length * 8)
@@ -81,40 +78,23 @@ public class Main {
 			for (int o = 0; o < ACCOUNT_LOOKUP.length; o++) {
 				String oo = ACCOUNT_LOOKUP[o];
 				if (oo.equals(fiveBit)) {
-					System.out.print(ACCOUNT_MAP.charAt(o) + " ");
-					System.out.println(fiveBit);
 					checksum += ACCOUNT_MAP.charAt(o);
 				}
 			}
 		}
-		System.out.println("checksum: " + checksum);
-		System.out.println(keyBinary.length());
 		String account = "";
-		
 		while (keyBinary.length() < 260)
-			keyBinary = "0" + keyBinary;
-		
-		System.out.println(keyBinary.length());
-		
-	    //for x in range(0,int(len(account.bin)/5)):
-	    //    # each 5-bit sequence = a base-32 character from account_map
-	    //    encode_account += account_lookup[account.bin[x*5:x*5+5]]
-		
+			keyBinary = "0" + keyBinary;		
 		for (int i = 0; i < keyBinary.length(); i += 5) {
 			String fiveBit = keyBinary.substring(i, i + 5);
 			for (int o = 0; o < ACCOUNT_LOOKUP.length; o++) {
 				String oo = ACCOUNT_LOOKUP[o];
 				if (oo.equals(fiveBit)) {
-					System.out.print(ACCOUNT_MAP.charAt(o) + " ");
-					System.out.println(fiveBit);
 					account += ACCOUNT_MAP.charAt(o);
 				}
 			}
 		}
-		
-		System.out.println("xrb_" + account + checksum);
-		
-		return "";
+		return "xrb_" + account + checksum;
 	}
 	
 	public static byte[] swapEndian(byte[] b) {
