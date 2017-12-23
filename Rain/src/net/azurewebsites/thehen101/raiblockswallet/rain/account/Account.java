@@ -7,11 +7,12 @@ import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipula
 //import static for readability, we don't want DataManipulationUtil everywhere!
 
 import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
+import net.i2p.crypto.eddsa.EdDSAPrivateKey;
+import net.i2p.crypto.eddsa.EdDSAPublicKey;
 
 
 public class Account {
@@ -19,8 +20,8 @@ public class Account {
 	public static final HashMap<String, Character> ACCOUNT_CHAR_TABLE = 
 			new HashMap<String, Character>();
 	
-	private final PrivateKey privateKey;
-	private final PublicKey publicKey;
+	private final EdDSAPrivateKey privateKey;
+	private final EdDSAPublicKey publicKey;
 	private final String address;
 	//private final String representative;
 	
@@ -40,8 +41,8 @@ public class Account {
 	}
 	
 	public Account(KeyPair keyPair) {
-		this.privateKey = keyPair.getPrivate();
-		this.publicKey = keyPair.getPublic();
+		this.privateKey = (EdDSAPrivateKey) keyPair.getPrivate();
+		this.publicKey = (EdDSAPublicKey) keyPair.getPublic();
 		this.address = this.publicKeyToXRBAddress(this.publicKey);
 	}
 	
@@ -51,8 +52,8 @@ public class Account {
 	 * @param publicK Public key to be used in addres derivation.
 	 * @return An XRB address.
 	 */
-	private String publicKeyToXRBAddress(PublicKey publicK) {
-		String publicKey = bytesToHex(publicK.getEncoded());
+	private String publicKeyToXRBAddress(EdDSAPublicKey publicK) {
+		String publicKey = bytesToHex(publicK.getAbyte());
 		if (publicKey.length() != 64) { // java likes to prefix 24 extra bytes on
 			//the start of a public key, and they are always the same, could someone
 			//please explain to me why this happens i have no idea - but this code
