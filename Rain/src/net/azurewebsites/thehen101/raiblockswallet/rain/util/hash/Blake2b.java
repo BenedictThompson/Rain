@@ -17,16 +17,16 @@
    this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 */
 
-package net.azurewebsites.thehen101.raiblockswallet.rain.util;
+package net.azurewebsites.thehen101.raiblockswallet.rain.util.hash;
 
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.Assert.assertFail;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.Assert.exclusiveLowerBound;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.Assert.inclusiveLowerBound;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.Assert.inclusiveUpperBound;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.LittleEndian.readInt;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.LittleEndian.readLong;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.LittleEndian.writeInt;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.Blake2b.Engine.LittleEndian.writeLong;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.Assert.assertFail;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.Assert.exclusiveLowerBound;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.Assert.inclusiveLowerBound;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.Assert.inclusiveUpperBound;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.LittleEndian.readInt;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.LittleEndian.readLong;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.LittleEndian.writeInt;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b.Engine.LittleEndian.writeLong;
 
 import java.io.PrintStream;
 import java.security.Key;
