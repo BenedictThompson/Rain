@@ -1,4 +1,4 @@
-package net.azurewebsites.thehen101.raiblockswallet.rain.util;
+package net.azurewebsites.thehen101.raiblockswallet.rain.server;
 
 import java.nio.ByteBuffer;
 
@@ -22,5 +22,9 @@ public class RequestWithHeader {
 				0, b, 1, 4);
 		System.arraycopy(this.requestBytes, 0, b, 5, this.requestBytes.length);
 		return b;
+	}
+	
+	public byte[] getRequestBytes() {
+		return this.requestBytes;
 	}
 }
