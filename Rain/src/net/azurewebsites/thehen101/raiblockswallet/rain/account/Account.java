@@ -1,18 +1,15 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.account;
 
 import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.bytesToHex;
-import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.hexStringToByteArray;
 import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.hexToBinary;
 import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.swapEndian;
 //import static for readability, we don't want DataManipulationUtil everywhere!
 
-import java.security.KeyPair;
-import java.security.PublicKey;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
-import net.i2p.crypto.eddsa.EdDSAPrivateKey;
-import net.i2p.crypto.eddsa.EdDSAPublicKey;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
 
 public class Account {
@@ -20,15 +17,10 @@ public class Account {
 	public static final HashMap<String, Character> ACCOUNT_CHAR_TABLE = 
 			new HashMap<String, Character>();
 	
-	private final EdDSAPrivateKey privateKey;
-	private final EdDSAPublicKey publicKey;
-	private final String address;
-	//private final String representative;
+	private final HashMap<Integer, Address> accountAddresses = 
+			new HashMap<Integer, Address>(); //an index will return an address
 	
-	//private final BigInteger rawBalance;
-	
-	//private final ArrayList<Transaction> unpocketedTransactions = new ArrayList<Transaction>();
-	// all commented out variables are to be implemented at a later date
+	private final byte[] seed;
 	
 	static {
 		//populate the accountCharTable
@@ -40,10 +32,18 @@ public class Account {
 		}
 	}
 	
-	public Account(KeyPair keyPair) {
-		this.privateKey = (EdDSAPrivateKey) keyPair.getPrivate();
-		this.publicKey = (EdDSAPublicKey) keyPair.getPublic();
-		this.address = this.publicKeyToXRBAddress(this.publicKey);
+	public Account(byte[] seed) {
+		this.seed = seed;
+	}
+	
+	public Address getAddressForIndex(int index) {
+		final Blake2b blake2b = Blake2b.Digest.newInstance(32);
+		blake2b.update(this.seed);
+		blake2b.update(ByteBuffer.allocate(4).putInt(index).array());
+		byte[] privateKey = blake2b.digest();
+		byte[] publicKey = ED25519.publickey(privateKey);
+		
+		return new Address(index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey));
 	}
 	
 	/**
@@ -52,20 +52,12 @@ public class Account {
 	 * @param publicK Public key to be used in addres derivation.
 	 * @return An XRB address.
 	 */
-	private String publicKeyToXRBAddress(EdDSAPublicKey publicK) {
-		String publicKey = bytesToHex(publicK.getAbyte());
-		if (publicKey.length() != 64) { // java likes to prefix 24 extra bytes on
-			//the start of a public key, and they are always the same, could someone
-			//please explain to me why this happens i have no idea - but this code
-			//removes them if they are there
-			publicKey = publicKey.substring(24);
-		}
-		String keyBinary = hexToBinary(publicKey); //we get the address by picking
+	private String publicKeyToXRBAddress(byte[] publicKey) {
+		String keyBinary = hexToBinary(bytesToHex(publicKey)); //we get the address by picking
 		//five bit (not byte!) chunks of the public key (in binary)
 		
-		byte[] bytes = hexStringToByteArray(publicKey); //so we can digest it
 		final Blake2b blake2b = Blake2b.Digest.newInstance(5);
-		blake2b.update(bytes); //the blake2b digest will be used for the checksum
+		blake2b.update(publicKey); //the blake2b digest will be used for the checksum
 		byte[] digest = swapEndian(blake2b.digest()); //the original wallet flips it
 		String bin = hexToBinary(bytesToHex(digest)); //we get the checksum by, similarly
 		//to getting the address, picking 5 bit chunks of the five byte digest
@@ -77,7 +69,7 @@ public class Account {
 		for (int i = 0; i < ((digest.length * 8) / 5); i++) {
 			String fiveBit = bin.substring(i * 5, (i * 5) + 5);
 			checksum += ACCOUNT_CHAR_TABLE.get(fiveBit);//go through the [40] bits in
-			//our digest and turn them into a char using the accountCharTable
+			//our digest and turn each five into a char using the accountCharTable
 		}
 		
 		//calculate the address
@@ -91,11 +83,7 @@ public class Account {
 			//into a char that is retrieved from the accountCharTable
 		}
 		
-		//return the address prefixed with xrb and suffixed with the checksum
+		//return the address prefixed with xrb_ and suffixed with the checksum
 		return "xrb_" + account + checksum;
-	}
-	
-	public String getAddress() {
-		return address;
 	}
 }
