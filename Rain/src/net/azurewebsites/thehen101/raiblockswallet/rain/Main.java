@@ -16,13 +16,15 @@ public class Main {
 					DataManipulationUtil
 					.hexStringToByteArray(
 							"0000000000000000000000000000000000000000000000000000000000000000"));
+			System.out.println(DataManipulationUtil.bytesToHex(a.getAddressForIndex(0).getPublicKey()));
+			System.out.println(DataManipulationUtil.bytesToHex(a.addressToPublicKey(a.getAddressForIndex(0).getAddress())));
 			System.out.println(a.getAddressForIndex(0).getAddress());
 			
 			//generate pow for an open block for this address indefinitely
-			for (int i = 0; i < 8; i++) {
-				POWFinder pow = new POWFinder(a.getAddressForIndex(0));
-				pow.start();
-			}
+			
+			POWFinder pow = new POWFinder(a.getAddressForIndex(0), 8);
+			pow.start();
+				
 			//System.exit(0);
 			Thread.sleep(100000000);
 			

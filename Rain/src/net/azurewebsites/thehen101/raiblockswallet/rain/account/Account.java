@@ -1,20 +1,26 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.account;
 
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.binaryToHex;
 import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.bytesToHex;
+import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.hexStringToByteArray;
 import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.hexToBinary;
 import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil.swapEndian;
 //import static for readability, we don't want DataManipulationUtil everywhere!
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
 public final class Account {
+	public static final String REPRESENTATIVE = "";
 	public static final char[] ACCOUNT_MAP = "13456789abcdefghijkmnopqrstuwxyz".toCharArray();
 	public static final HashMap<String, Character> ACCOUNT_CHAR_TABLE = 
 			new HashMap<String, Character>();
+	public static final HashMap<Character, String> ACCOUNT_BIN_TABLE = 
+			new HashMap<Character, String>();
 	
 	private final HashMap<Integer, Address> accountAddresses = 
 			new HashMap<Integer, Address>(); //an index will return an address
@@ -22,12 +28,13 @@ public final class Account {
 	private final byte[] seed;
 	
 	static {
-		//populate the accountCharTable
+		//populate the ACCOUNT_CHAR_TABLE and ACCOUNT_BIN_TABLE
 		for (int i = 0; i < ACCOUNT_MAP.length; i++) {
 			String bin = Integer.toBinaryString(i);
 			while (bin.length() < 5)
 				bin = "0" + bin; //pad with 0
 			ACCOUNT_CHAR_TABLE.put(bin, ACCOUNT_MAP[i]);
+			ACCOUNT_BIN_TABLE.put(ACCOUNT_MAP[i], bin);
 		}
 	}
 	
@@ -65,10 +72,42 @@ public final class Account {
 		
 		
 		Address newAddress = new Address(
-				index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey));
+				this, index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey), REPRESENTATIVE);
 		//add the generated address to the addres table (hashmap).
 		this.accountAddresses.put(newAddress.getIndex(), newAddress);
 		return newAddress; //and finally return the new address
+	}
+	
+	public byte[] addressToPublicKey(String address) {
+		if (address.length() != 64)
+			return null;
+		if (!address.substring(0, 4).equals("xrb_"))
+			return null;
+		
+		String pub = address.substring(4, address.length() - 8);
+		String checksum = address.substring(address.length() - 8);
+		
+		String pubBin = "";
+		for (int i = 0; i < pub.length(); i++) {
+			pubBin += ACCOUNT_BIN_TABLE.get(pub.charAt(i));
+		}
+		pubBin = pubBin.substring(4);
+		
+		String checkBin = "";
+		for (int i = 0; i < checksum.length(); i++) {
+			checkBin += ACCOUNT_BIN_TABLE.get(checksum.charAt(i));
+		}
+		byte[] checkHex = swapEndian(hexStringToByteArray(binaryToHex(checkBin)));
+		byte[] publicKey = hexStringToByteArray(binaryToHex(pubBin));
+		
+		
+		final Blake2b blake = Blake2b.Digest.newInstance(5);
+		blake.update(publicKey);
+		byte[] digest = blake.digest();
+		if (Arrays.equals(digest, checkHex)) 
+			return publicKey;
+		
+		return null;
 	}
 	
 	/**

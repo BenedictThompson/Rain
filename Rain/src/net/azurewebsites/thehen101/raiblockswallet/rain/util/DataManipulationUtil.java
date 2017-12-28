@@ -83,4 +83,9 @@ public final class DataManipulationUtil {
 		String formatPad = "%" + (hex.length() * 4) + "s";
 		return (String.format(formatPad, value).replace(" ", ""));
 	}
+	
+	public static String binaryToHex(String bin) {
+		BigInteger b = new BigInteger(bin, 2);
+		return b.toString(16).toUpperCase();
+	}
 }
