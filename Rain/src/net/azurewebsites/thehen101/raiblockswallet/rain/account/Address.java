@@ -45,4 +45,8 @@ public final class Address {
 	public String getRepresentative() {
 		return this.representative;
 	}
+	
+	public void setRepresentative(String newRep) {
+		this.representative = newRep;
+	}
 }

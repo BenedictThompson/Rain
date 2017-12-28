@@ -7,6 +7,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.server.RequestWithHeader
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerNewBlock;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerServerResponse;
+import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionChange;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionOpen;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionReceive;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
@@ -34,15 +35,20 @@ public class Main {
 			//while (!pow.canGiveWork())
 			//	Thread.sleep(100);
 			//System.out.println(pow.canGiveWork() + " " + pow.getWork());
-			pow.giveWork(DataManipulationUtil.hexStringToByteArray("5A983D9D8EC8A8C32AB1620E57F0617ADE2891084CFAF8015845303AD3254F62"));
+			pow.giveWork(DataManipulationUtil.hexStringToByteArray("5738E61E5D43BFD2F82271846E27482FA23BD616CECCDBF1A08B3B0B843D10FD"));
 			while (!pow.canGiveWork())
 				Thread.sleep(100);
 			//System.out.println(pow.canGiveWork() + " " + pow.getWork());
 			//Thread.sleep(100000000);
 			
-			TransactionReceive receive = new TransactionReceive(pow.getWork(), a.getAddressForIndex(0),
-					"5A983D9D8EC8A8C32AB1620E57F0617ADE2891084CFAF8015845303AD3254F62",
-					"2A49369DD0F1609FB3C91AB2E63883F6FA7E4FADAAD06F4C41839F2FD11F9346");
+			a.getAddressForIndex(0).setRepresentative("xrb_1anrzcuwe64rwxzcco8dkhpyxpi8kd7zsjc1oeimpc3ppca4mrjtwnqposrs");
+			
+			TransactionChange change = new TransactionChange(pow.getWork(), a.getAddressForIndex(0),
+					"5738E61E5D43BFD2F82271846E27482FA23BD616CECCDBF1A08B3B0B843D10FD");
+			
+			//TransactionReceive receive = new TransactionReceive(pow.getWork(), a.getAddressForIndex(0),
+			//		"5A983D9D8EC8A8C32AB1620E57F0617ADE2891084CFAF8015845303AD3254F62",
+			//		"2A49369DD0F1609FB3C91AB2E63883F6FA7E4FADAAD06F4C41839F2FD11F9346");
 			
 			//TransactionSend send = new TransactionSend(pow.getWork(),
 			//		"SNIP", a.getAddressForIndex(0),
@@ -68,7 +74,7 @@ public class Main {
 			};
 			
 			c.addListener(listener);
-			c.addToSendQueue(new RequestWithHeader(false, receive.getAsJSON()));
+			c.addToSendQueue(new RequestWithHeader(false, change.getAsJSON()));
 			Thread.sleep(100000000);
 			c.addToSendQueue(new RequestWithHeader(false, ""
 					+ "{  " + 
