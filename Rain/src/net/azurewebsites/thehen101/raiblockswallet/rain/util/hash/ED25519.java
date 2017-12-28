@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 /* Written by k3d3
  * Released to the public domain
+ * 
+ * - thanks k3d3!, note to anyone reading: the only change in this class is the digest method: H(byte[]).
  */
 
 public class ED25519 {

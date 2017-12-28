@@ -11,8 +11,7 @@ import java.util.HashMap;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
-
-public class Account {
+public final class Account {
 	public static final char[] ACCOUNT_MAP = "13456789abcdefghijkmnopqrstuwxyz".toCharArray();
 	public static final HashMap<String, Character> ACCOUNT_CHAR_TABLE = 
 			new HashMap<String, Character>();
@@ -36,20 +35,46 @@ public class Account {
 		this.seed = seed;
 	}
 	
+	/**
+	 * Gets an address for a given index. The majority of the times this method
+	 * will be called, index will be zero as that's what is used for the first
+	 * address. If a second address is made, the index *should* be one, so a
+	 * different Address is returned (but both are generated from the same
+	 * account seed).
+	 * 
+	 * @param index The index to get the address from
+	 * @return The Address corresponding to the given index, or null if the
+	 * passed index was invalid
+	 */
 	public Address getAddressForIndex(int index) {
-		final Blake2b blake2b = Blake2b.Digest.newInstance(32);
-		blake2b.update(this.seed);
-		blake2b.update(ByteBuffer.allocate(4).putInt(index).array());
-		byte[] privateKey = blake2b.digest();
-		byte[] publicKey = ED25519.publickey(privateKey);
+		//iirc the reference spec uses an unsigned int
+		if (index < 0)
+			return null;
 		
-		return new Address(index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey));
+		//if we have already generated an Address for this index, return it.
+		Address a = this.accountAddresses.get(index);
+		if (a != null)
+			return a;
+		
+		//if not, generate an address for the given index and return it.
+		final Blake2b blake2b = Blake2b.Digest.newInstance(32); //will return 32 bytes digest
+		blake2b.update(this.seed); //add seed
+		blake2b.update(ByteBuffer.allocate(4).putInt(index).array()); //and add index
+		byte[] privateKey = blake2b.digest(); //digest 36 bytes into 32
+		byte[] publicKey = ED25519.publickey(privateKey); //return the public key
+		
+		
+		Address newAddress = new Address(
+				index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey));
+		//add the generated address to the addres table (hashmap).
+		this.accountAddresses.put(newAddress.getIndex(), newAddress);
+		return newAddress; //and finally return the new address
 	}
 	
 	/**
 	 * Derives and returns an XRB address from a passed public key.
 	 * 
-	 * @param publicK Public key to be used in addres derivation.
+	 * @param publicK Public key to be used in address derivation.
 	 * @return An XRB address.
 	 */
 	private String publicKeyToXRBAddress(byte[] publicKey) {

@@ -1,6 +1,6 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.account;
 
-public class Address {
+public final class Address {
 	private final int index;
 	private final byte[] publicKey;
 	private final byte[] privateKey;
