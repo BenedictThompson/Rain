@@ -1,6 +1,5 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
@@ -9,7 +8,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerNewBlock;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerServerResponse;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionOpen;
-import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionSend;
+import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionReceive;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DenominationConverter;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.POWFinder;
@@ -35,16 +34,20 @@ public class Main {
 			//while (!pow.canGiveWork())
 			//	Thread.sleep(100);
 			//System.out.println(pow.canGiveWork() + " " + pow.getWork());
-			pow.giveWork(DataManipulationUtil.hexStringToByteArray("SNIP"));
+			pow.giveWork(DataManipulationUtil.hexStringToByteArray("5A983D9D8EC8A8C32AB1620E57F0617ADE2891084CFAF8015845303AD3254F62"));
 			while (!pow.canGiveWork())
 				Thread.sleep(100);
 			//System.out.println(pow.canGiveWork() + " " + pow.getWork());
 			//Thread.sleep(100000000);
 			
-			TransactionSend send = new TransactionSend(pow.getWork(),
-					"SNIP", a.getAddressForIndex(0),
-					"xrb_1owda95f9hc841qbb6dcm4egng3ohedw5xf1apjzykstx3zky7nsym5t6k4d",
-					DenominationConverter.convertToRaw(new BigInteger("1"), DenominationConverter.MRAI));
+			TransactionReceive receive = new TransactionReceive(pow.getWork(), a.getAddressForIndex(0),
+					"5A983D9D8EC8A8C32AB1620E57F0617ADE2891084CFAF8015845303AD3254F62",
+					"2A49369DD0F1609FB3C91AB2E63883F6FA7E4FADAAD06F4C41839F2FD11F9346");
+			
+			//TransactionSend send = new TransactionSend(pow.getWork(),
+			//		"SNIP", a.getAddressForIndex(0),
+			//		"xrb_1owda95f9hc841qbb6dcm4egng3ohedw5xf1apjzykstx3zky7nsym5t6k4d",
+			//		DenominationConverter.convertToRaw(new BigInteger("1"), DenominationConverter.MRAI));
 			
 			ListenerNewBlock newBlockListener = new ListenerNewBlock() {
 				@Override
@@ -65,7 +68,8 @@ public class Main {
 			};
 			
 			c.addListener(listener);
-			c.addToSendQueue(new RequestWithHeader(false, send.getAsJSON()));
+			c.addToSendQueue(new RequestWithHeader(false, receive.getAsJSON()));
+			Thread.sleep(100000000);
 			c.addToSendQueue(new RequestWithHeader(false, ""
 					+ "{  " + 
 					"  \"action\": \"accounts_frontiers\"," + 
