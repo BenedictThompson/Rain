@@ -10,7 +10,7 @@ public class POWFinder extends Thread {
 	private final Address address;
 	private final Random random;
 	private final int threadCount;
-	private String openWork;
+	public String openWork;
 	private String sendWork;
 	private String receiveWork;
 	private String changeWork;
@@ -31,6 +31,7 @@ public class POWFinder extends Thread {
 				System.out.println("Starting open POW generation...");
 				byte[] pow = this.getPOW(this.address.getPublicKey());
 				System.out.println(DataManipulationUtil.bytesToHex(pow));
+				this.openWork = DataManipulationUtil.bytesToHex(pow);
 				System.out.println("Finished open POW generation.");
 			}
 		//}

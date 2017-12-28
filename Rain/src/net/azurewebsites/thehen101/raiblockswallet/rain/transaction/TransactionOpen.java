@@ -9,8 +9,8 @@ public class TransactionOpen extends Transaction {
 	private final Address address;
 	private final String signature, source;
 
-	public TransactionOpen(Type type, String work, String source, Address address) {
-		super(type, work);
+	public TransactionOpen(String work, String source, Address address) {
+		super(Transaction.Type.OPEN, work);
 		this.address = address;
 		this.source = source;
 		this.signature = calculateSignature();
@@ -22,22 +22,25 @@ public class TransactionOpen extends Transaction {
 		blake.update(DataManipulationUtil.hexStringToByteArray(this.source));
 		blake.update(this.address.getParent().addressToPublicKey(this.address.getRepresentative()));
 		blake.update(this.address.getParent().addressToPublicKey(this.address.getAddress()));
-		
-		byte[] privateKey = this.address.getPrivateKey();
-		byte[] publicKey = this.address.getPrivateKey();
-		byte[] newPrivateKey = new byte[privateKey.length + publicKey.length];
-
-		System.arraycopy(privateKey, 0, newPrivateKey, 0, privateKey.length);
-		System.arraycopy(publicKey, 0, newPrivateKey, privateKey.length, publicKey.length);
-
-		byte[] newPublicKey = ED25519.publickey(newPrivateKey);
-		byte[] signature = ED25519.signature(blake.digest(), newPrivateKey, newPublicKey);
+		byte[] signature = ED25519.signature(blake.digest(), this.address.getPrivateKey(),
+				this.address.getPublicKey());
 		return DataManipulationUtil.bytesToHex(signature);
 	}
-
+	
 	@Override
 	public String getAsJSON() {
-		// TODO Auto-generated method stub
-		return null;
+		return 
+			"{" + 
+				"\"action\": \"process\"," + 
+				"\"block\": \"" + 
+				"{" + 
+					"\\\"type\\\": \\\"open\\\"," + 
+					"\\\"account\\\": \\\""+ this.address.getAddress() + "\\\"," + 
+					"\\\"representative\\\": \\\"" + this.address.getRepresentative() + "\\\"," + 
+					"\\\"source\\\": \\\"" + this.source + "\\\"," + 
+					"\\\"work\\\": \\\"" + this.getWork() + "\\\"," + 
+					"\\\"signature\\\": \\\"" + this.signature + "\\\"" + 
+				"}\"" + 
+			"}";
 	}
 }

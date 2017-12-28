@@ -15,7 +15,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
 public final class Account {
-	public static final String REPRESENTATIVE = "";
+	public static final String REPRESENTATIVE = "xrb_3arg3asgtigae3xckabaaewkx3bzsh7nwz7jkmjos79ihyaxwphhm6qgjps4";
 	public static final char[] ACCOUNT_MAP = "13456789abcdefghijkmnopqrstuwxyz".toCharArray();
 	public static final HashMap<String, Character> ACCOUNT_CHAR_TABLE = 
 			new HashMap<String, Character>();

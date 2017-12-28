@@ -5,6 +5,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.server.RequestWithHeader
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerNewBlock;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerServerResponse;
+import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionOpen;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.POWFinder;
 
@@ -15,7 +16,7 @@ public class Main {
 			Account a = new Account(
 					DataManipulationUtil
 					.hexStringToByteArray(
-							"0000000000000000000000000000000000000000000000000000000000000000"));
+							"SNIPSNIP"));
 			System.out.println(DataManipulationUtil.bytesToHex(a.getAddressForIndex(0).getPublicKey()));
 			System.out.println(DataManipulationUtil.bytesToHex(a.addressToPublicKey(a.getAddressForIndex(0).getAddress())));
 			System.out.println(a.getAddressForIndex(0).getAddress());
@@ -26,7 +27,7 @@ public class Main {
 			pow.start();
 				
 			//System.exit(0);
-			Thread.sleep(100000000);
+			//Thread.sleep(100000000);
 			
 			ListenerNewBlock newBlockListener = new ListenerNewBlock() {
 				@Override
@@ -50,17 +51,27 @@ public class Main {
 			c.addToSendQueue(new RequestWithHeader(false, ""
 					+ "{  " + 
 					"  \"action\": \"accounts_frontiers\"," + 
-					"  \"accounts\": [\"xrb_19ygfgw97htkabkc9ma7btnqun7ijjpc9trpna5ukb1ujtji76poyj8bc9au\"]" + 
+					"  \"accounts\": [\"xrb_3jzukt4ekdyrym9s3htcokoe7xdfa1tqckxr19gnqghqf6t7ud1pkwk7x9jq\"]" + 
 					"}"));
 			
-			Thread.sleep(10000);
+			Thread.sleep(1000);
 			
 			c.addToSendQueue(new RequestWithHeader(false, "{\"action\": \"account_balance\"," + 
-					"  \"account\": \"xrb_1owda95f9hc841qbb6dcm4egng3ohedw5xf1apjzykstx3zky7nsym5t6k4d\"" + 
+					"  \"account\": \"xrb_3jzukt4ekdyrym9s3htcokoe7xdfa1tqckxr19gnqghqf6t7ud1pkwk7x9jq\"" + 
 					"}"));
-			c.addToSendQueue(new RequestWithHeader(false, "{\"action\": \"account_balance\"," + 
-					"  \"account\": \"xrb_1owda95f9hc841qbb6dcm4egng3ohedw5xf1apjzykstx3zky7nsym5t6k4d\"" + 
+			
+			c.addToSendQueue(new RequestWithHeader(false, "{  " + 
+					"  \"action\": \"pending\"," + 
+					"  \"account\": \"xrb_3jzukt4ekdyrym9s3htcokoe7xdfa1tqckxr19gnqghqf6t7ud1pkwk7x9jq\", " + 
+					"  \"count\": \"100\"  " + 
 					"}"));
+			
+			Thread.sleep(15000);
+			System.out.println("Sending open block...");
+			Thread.sleep(4000);
+			TransactionOpen open = new TransactionOpen(pow.openWork, "2026CDF1B97A8DE397666FE98064959976CB1E19E3D6B619ADF93ECCD80D004A",
+					a.getAddressForIndex(0));
+			c.addToSendQueue(new RequestWithHeader(false, open.getAsJSON()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
