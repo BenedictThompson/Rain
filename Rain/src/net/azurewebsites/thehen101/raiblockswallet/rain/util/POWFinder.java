@@ -3,38 +3,60 @@ package net.azurewebsites.thehen101.raiblockswallet.rain.util;
 import java.util.Arrays;
 import java.util.Random;
 
-import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 
 public class POWFinder extends Thread {
-	private final Address address;
 	private final Random random;
 	private final int threadCount;
-	public String openWork;
-	private String sendWork;
-	private String receiveWork;
-	private String changeWork;
-	private boolean alive;
+	private String work;
+	private byte[] hash;
+	private boolean alive, working;
 	
-	public POWFinder(Address address, int threadsToUse) {
+	public POWFinder(int threadsToUse) {
 		this.random = new Random();
-		this.address = address;
 		this.threadCount = threadsToUse;
 		this.alive = true;
 	}
 	
-	//UNFINISHED
 	@Override
 	public void run() {
-		//while (this.alive) {
-			if (this.openWork == null) {
-				System.out.println("Starting open POW generation...");
-				byte[] pow = this.getPOW(this.address.getPublicKey());
+		while (this.alive) {
+			if (this.work == null && this.hash != null) {
+				System.out.println("Starting POW generation...");
+				byte[] pow = this.getPOW(this.hash);
 				System.out.println(DataManipulationUtil.bytesToHex(pow));
-				this.openWork = DataManipulationUtil.bytesToHex(pow);
-				System.out.println("Finished open POW generation.");
+				this.work = DataManipulationUtil.bytesToHex(pow);
+				System.out.println("Finished POW generation.");
+				this.working = false;
 			}
-		//}
+			try {
+				Thread.sleep(10);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public boolean canGiveWork() {
+		return !this.working;
+	}
+	
+	public boolean giveWork(byte[] hash) {
+		if (this.canGiveWork()) {
+			this.working = true;
+			this.hash = hash;
+			this.work = null;
+			return true;
+		}
+		return false;
+	}
+	
+	public String getWork() {
+		return this.work;
+	}
+	
+	public void setAlive(boolean shouldBeAlive) {
+		this.alive = shouldBeAlive;
 	}
 	
 	private boolean overThreshold(byte[] bytes) {
@@ -93,21 +115,5 @@ public class POWFinder extends Thread {
 				return false;
 		}
 		return true;
-	}
-	
-	public void setAlive(boolean shouldBeAlive) {
-		this.alive = shouldBeAlive;
-	}
-	
-	public class POW {
-		private final String pow;
-		
-		public POW(String pow) {
-			this.pow = pow;
-		}
-		
-		public String getPOW() {
-			return this.pow;
-		}
 	}
 }
