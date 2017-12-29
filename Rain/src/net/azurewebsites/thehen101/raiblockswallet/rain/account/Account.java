@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
@@ -74,10 +75,11 @@ public final class Account {
 		byte[] privateKey = blake2b.digest(); //digest 36 bytes into 32
 		byte[] publicKey = ED25519.publickey(privateKey); //return the public key
 		
-		
 		Address newAddress = new Address(
-				this, index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey), REPRESENTATIVE, null);
-		//add the generated address to the addres table (hashmap).
+				this, index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey),
+				REPRESENTATIVE, null, true);
+		
+		//add the generated address to the address table (hashmap).
 		this.accountAddresses.put(newAddress.getIndex(), newAddress);
 		return newAddress; //and finally return the new address
 	}

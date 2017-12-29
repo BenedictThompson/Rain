@@ -12,12 +12,13 @@ public final class Address {
 	
 	private boolean isOpened;
 	private String representative;
-	private BigInteger rawBalance;
+	private BigInteger totalBalance, rawBalance, rawPending;
 	private final ArrayList<String> unpocketedTransactions = new ArrayList<String>();
 	
 	private String nextPow;
 	
-	public Address(Account parent, int index, byte[] pub, byte[] priv, String address, String representative, String nextPOW) {
+	public Address(Account parent, int index, byte[] pub, byte[] priv, String address,
+			String representative, String nextPOW, boolean isOpened) {
 		this.parent = parent;
 		this.index = index;
 		this.publicKey = pub;
@@ -25,7 +26,7 @@ public final class Address {
 		this.address = address;
 		this.representative = representative;
 		this.nextPow = nextPOW;
-		this.isOpened = true;
+		this.isOpened = isOpened;
 	}
 	
 	public Account getParent() {
@@ -74,5 +75,29 @@ public final class Address {
 	
 	public void setIsOpened(boolean newState) {
 		this.isOpened = newState;
+	}
+	
+	public BigInteger getRawPending() {
+		return this.rawPending;
+	}
+	
+	public void setPending(BigInteger newBalance) {
+		this.rawPending = newBalance;
+	}
+	
+	public BigInteger getRawBalance() {
+		return this.rawBalance;
+	}
+	
+	public void setBalance(BigInteger newBalance) {
+		this.rawBalance = newBalance;
+	}
+	
+	public BigInteger getRawTotalBalance() {
+		return this.totalBalance;
+	}
+	
+	public void setTotalBalance(BigInteger newBalance) {
+		this.totalBalance = newBalance;
 	}
 }

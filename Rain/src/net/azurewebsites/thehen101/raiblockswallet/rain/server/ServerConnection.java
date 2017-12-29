@@ -168,9 +168,8 @@ public final class ServerConnection extends Thread {
 		receivedResponse = true;
 		RequestWithHeader rwh = this.sendQueue.get(0);
 		this.sendQueue.remove(rwh);
-		for (ListenerServerResponse listener : this.listeners) {
-			listener.onResponse(rwh, serverGaveUs);
-		}
+		for (int i = 0; i < this.listeners.size(); i++)
+			this.listeners.get(i).onResponse(rwh, serverGaveUs);
 	}
 
 	public void addListener(ListenerServerResponse listener) {

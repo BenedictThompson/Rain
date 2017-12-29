@@ -14,6 +14,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 public class POWFinder extends Thread {
 	private final Rain rain;
 	private final HashMap<Address, String> powMap = new HashMap<Address, String>();
+	private final HashMap<Address, Boolean> openPowMap = new HashMap<Address, Boolean>();
 	private final Random random;
 	private final int threadCount;
 	private boolean alive;
@@ -34,12 +35,19 @@ public class POWFinder extends Thread {
 				Address key = entry.getKey();
 				String hash = entry.getValue();
 				if (hash != null) {
-					if (hash.equals("") && key.getIsOpened()) {
+					if (hash.equals("")) {
 						System.out.println("Getting POW for account: " + key.getAddress());
 						String prevBlock = this.rain.getPreviousHash(key);
-						if (prevBlock.equals("")) {
-							key.setIsOpened(false);
-							System.out.println(key.getAddress() + " needs to be opened");
+						boolean calculateOpenAlready = this.openPowMap.get(key) == null ? false
+								: this.openPowMap.get(key);
+						if (prevBlock.equals("") && !calculateOpenAlready) {
+							System.out.println(key.getAddress() 
+									+ " is not open, getting open POW");
+							byte[] powBytes = this.getPOW(key.getPublicKey());
+							String pow = DataManipulationUtil.bytesToHex(powBytes);
+							System.out.println("Found open POW: " + pow);
+							this.powMap.put(key, pow);
+							this.openPowMap.put(key, true);
 						} else {
 							byte[] powBytes = this.getPOW(DataManipulationUtil
 									.hexStringToByteArray(prevBlock));
@@ -141,8 +149,6 @@ public class POWFinder extends Thread {
 				e.printStackTrace();
 			}
 		}
-		// for (Thread t : threads) //deprecated
-		// t.stop();
 		
 		return pow;
 	}

@@ -16,7 +16,7 @@ public class Main {
 			accounts.add(new Account(
 					DataManipulationUtil
 					.hexStringToByteArray(
-							"SNIP")));
+							"Snip")));
 			Rain rain = new Rain(connections, accounts, 8);
 			
 			for (ServerConnection connection : connections) {
@@ -24,6 +24,8 @@ public class Main {
 					connection.setNewBlockListener(rain.getBlockListener());
 				}
 			}
+			
+			Thread.sleep(500);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

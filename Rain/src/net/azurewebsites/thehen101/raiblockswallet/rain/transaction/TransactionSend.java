@@ -13,12 +13,12 @@ public class TransactionSend extends Transaction {
 	private final BigInteger amount;
 
 	public TransactionSend(String work, String previous, Address address, String sendToAddress,
-			BigInteger rawToSend) {
+			BigInteger finalAmountLeft) {
 		super(Transaction.Type.SEND, work);
 		this.address = address;
 		this.previous = previous;
 		this.sendAddress = sendToAddress;
-		this.amount = rawToSend;
+		this.amount = finalAmountLeft;
 		String raw = amount.toString(16).toUpperCase();
 		while (raw.length() < 32)
 			raw = "0" + raw;

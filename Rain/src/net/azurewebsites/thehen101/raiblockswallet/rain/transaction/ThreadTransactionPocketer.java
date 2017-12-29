@@ -80,11 +80,19 @@ public class ThreadTransactionPocketer extends Thread {
 	}
 	
 	private void pocket(Address address, String hash) {
-		TransactionReceive receive = new TransactionReceive(this.rain.getPOWFinder()
-				.getPowBlocking(address), address, this.rain.getPreviousHash(address),
-				hash);
-		this.rain.getServerManager().addToConnectedServerQueue(new RequestWithHeader(false,
-				receive.getAsJSON()));
+		RequestWithHeader rwh = null;
+		if (address.getIsOpened()) {
+			TransactionReceive receive = new TransactionReceive(this.rain.getPOWFinder()
+					.getPowBlocking(address), address, this.rain.getPreviousHash(address), hash);
+			rwh = new RequestWithHeader(false, receive.getAsJSON());
+		} else {
+			TransactionOpen open = new TransactionOpen(
+					this.rain.getPOWFinder().getPowBlocking(address), hash, address);
+			rwh = new RequestWithHeader(false, open.getAsJSON());
+			address.setIsOpened(true);
+		}
+		this.rain.getServerManager().addToConnectedServerQueue(rwh);
+		this.rain.getBalanceUpdater().updateBalance(address);
 	}
 	
 	public boolean getAlive() {

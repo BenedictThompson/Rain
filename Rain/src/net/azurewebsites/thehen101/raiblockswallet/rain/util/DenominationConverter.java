@@ -27,7 +27,16 @@ public enum DenominationConverter {
 		return amount.multiply(new BigDecimal(to.valueComparedToMrai).divide(new BigDecimal(from.valueComparedToMrai)));
 	}
 	
-	public static BigInteger convertToRaw(BigInteger amount, DenominationConverter from) {
-		return amount.multiply(RAW.valueComparedToMrai.divide(from.valueComparedToMrai));
+	public static BigInteger convertToRaw(BigDecimal amount, DenominationConverter from) {
+		try {
+			return amount.multiply(
+					new BigDecimal(RAW.valueComparedToMrai.divide(from.valueComparedToMrai)))
+					.toBigIntegerExact();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Unrecoverable error, exiting.");
+			System.exit(100);
+		}
+		return null;
 	}
 }
