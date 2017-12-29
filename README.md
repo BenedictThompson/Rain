@@ -10,6 +10,7 @@ Currently a work in progress. Todo:
 - Add automatic opening of addresses
 - Add server connection validation
 - Add price checking
+- Add secure saving/loading of accounts (keys)
 - Add GUI
 
 ETA: 1 - 2 days
