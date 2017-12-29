@@ -174,7 +174,8 @@ public final class ServerConnection extends Thread {
 	}
 
 	public void addListener(ListenerServerResponse listener) {
-		this.listeners.add(listener);
+		if (!this.listeners.contains(listener))
+			this.listeners.add(listener);
 	}
 
 	public void removeListener(ListenerServerResponse listener) {

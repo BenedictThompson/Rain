@@ -9,22 +9,24 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.RequestWithHeader;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
+import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerManager;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerNewBlock;
+import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerServerResponse;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.POWFinder;
 
 public final class Rain {
-	private final ArrayList<ServerConnection> serverConnections;
 	private final ArrayList<byte[]> recentBlockHashes;
 	private final ArrayList<Account> accounts;
+	private final ServerManager serverManager;
 	private final ListenerNewBlock newBlockListener;
 	private final POWFinder powfinder;
 	
 	private MessageDigest md;
 	
 	public Rain(ArrayList<ServerConnection> serverConnections, ArrayList<Account> accounts, int powThreadCount) {
-		this.serverConnections = serverConnections;
+		this.serverManager = new ServerManager(serverConnections);
 		this.recentBlockHashes = new ArrayList<byte[]>();
-		for (ServerConnection connection : this.serverConnections)
+		for (ServerConnection connection : this.serverManager.getConnections())
 			connection.start();
 		try {
 			this.md = MessageDigest.getInstance("MD5");
@@ -40,6 +42,49 @@ public final class Rain {
 			}
 		};
 		System.out.println("Rain instance initialised");
+	}
+	
+	public String getPreviousHash(final Address address) {
+		String[] previousHash = new String[1];
+		previousHash[0] = null;
+		String body = 
+				"{" + 
+					"\"action\": \"frontiers\"," + 
+					"\"account\": \"" + address.getAddress() + "\"," + 
+					"\"count\": \"1\"" + 
+				"}";
+		RequestWithHeader request = new RequestWithHeader(false, body);
+		ListenerServerResponse listener = new ListenerServerResponse() {
+			@Override
+			public void onResponse(RequestWithHeader initialRequest, RequestWithHeader receivedRequest) {
+				if (Arrays.equals(request.getRequestBytes(), initialRequest.getRequestBytes())) {
+					//we got the request
+					String returned = new String(receivedRequest.getRequestBytes());
+					String a = returned.substring(returned.indexOf("xrb_"));
+					String add = a.substring(0, a.indexOf("\""));
+					if (!add.equals(address.getAddress())) {
+						System.out.println(address.getAddress() + " needs to be opened.");
+						previousHash[0] = "";
+					} else {
+						String d = returned.substring(0, returned.lastIndexOf("\""));
+						int index = d.lastIndexOf("\"") + 1;
+						String hash = d.substring(index);
+						previousHash[0] = hash;
+					}
+				}
+			}
+		};
+		this.serverManager.addListenerToAll(listener);
+		this.serverManager.addToConnectedServerQueue(request);
+		while (previousHash[0] == null) {
+			try {
+				Thread.sleep(5);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		this.serverManager.removeListenerFromAll(listener);
+		return previousHash[0];
 	}
 	
 	public void notifyNewBlock(String newBlock) {
@@ -86,6 +131,10 @@ public final class Rain {
 		String hash = da.substring(0, ea);
 		System.out.println("Adding block for above address: " + hash);
 		
+		this.recentBlockHashes.add(digest);
+		if (this.recentBlockHashes.size() > 10000)
+			this.recentBlockHashes.remove(0);
+		
 		add.getUnpocketedTransactions().add(hash);
 	}
 	
@@ -101,8 +150,8 @@ public final class Rain {
 		return null;
 	}
 	
-	public ArrayList<ServerConnection> getServerConnections() {
-		return this.serverConnections;
+	public ServerManager getServerManager() {
+		return this.serverManager;
 	}
 	
 	public ArrayList<Account> getAccounts() {
