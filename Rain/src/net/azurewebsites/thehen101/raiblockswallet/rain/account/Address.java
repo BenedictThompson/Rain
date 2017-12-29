@@ -1,6 +1,7 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.account;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 
 public final class Address {
 	private final Account parent;
@@ -11,15 +12,18 @@ public final class Address {
 	
 	private String representative;
 	private BigInteger rawBalance;
-	//private final ArrayList<Transaction> unpocketedTransactions = new ArrayList<Transaction>();
+	private final ArrayList<String> unpocketedTransactions = new ArrayList<String>();
 	
-	public Address(Account parent, int index, byte[] pub, byte[] priv, String address, String representative) {
+	private String nextPow;
+	
+	public Address(Account parent, int index, byte[] pub, byte[] priv, String address, String representative, String nextPOW) {
 		this.parent = parent;
 		this.index = index;
 		this.publicKey = pub;
 		this.privateKey = priv;
 		this.address = address;
 		this.representative = representative;
+		this.nextPow = nextPOW;
 	}
 	
 	public Account getParent() {
@@ -48,5 +52,17 @@ public final class Address {
 	
 	public void setRepresentative(String newRep) {
 		this.representative = newRep;
+	}
+	
+	public String getNextPOW() {
+		return this.nextPow;
+	}
+	
+	public void setNextPOW(String newPOW) {
+		this.nextPow = newPOW;
+	}
+	
+	public ArrayList<String> getUnpocketedTransactions() {
+		return this.unpocketedTransactions;
 	}
 }

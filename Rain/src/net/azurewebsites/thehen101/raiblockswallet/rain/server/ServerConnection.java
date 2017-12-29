@@ -15,7 +15,7 @@ public final class ServerConnection extends Thread {
 	private final ArrayList<RequestWithHeader> sendQueue = new ArrayList<RequestWithHeader>();
 	private final ArrayList<ListenerServerResponse> listeners = new ArrayList<ListenerServerResponse>();
 
-	private final ListenerNewBlock newBlockListener;
+	private ListenerNewBlock newBlockListener;
 
 	private final String IP;
 	private final int port;
@@ -44,6 +44,8 @@ public final class ServerConnection extends Thread {
 			try {
 				this.currentSocket = new Socket(IP, port);
 			} catch (Exception e) {
+				System.out.println("ERROR: could not connect to RainServer at: " 
+						+ this.IP + ":" + this.port);
 				e.printStackTrace();
 				try {
 					Thread.sleep(30000);
@@ -57,7 +59,7 @@ public final class ServerConnection extends Thread {
 			@Override
 			public void run() {
 				try {
-					InputStreamReader in = new InputStreamReader(currentSocket.getInputStream());
+					InputStreamReader in = new InputStreamReader(currentSocket.getInputStream(), "ISO-8859-1");
 					while (shouldConnect) {
 						// the following code is mostly copied from the rain server as its what we need
 						int read = in.read();
@@ -101,10 +103,12 @@ public final class ServerConnection extends Thread {
 							isReadingRequest = false;
 							// finished reading request, this is our last byte so notify the listener
 							boolean isNewBlock = requestHeader[0] == 0x00 ? false : true;
-							if (isNewBlock)
-								newBlockListener.onNewBlock(new RequestWithHeader(isNewBlock, request));
-							else
+							if (isNewBlock) {
+								if (newBlockListener != null)
+									newBlockListener.onNewBlock(new RequestWithHeader(isNewBlock, request));
+							} else {
 								receivedResponse(new RequestWithHeader(isNewBlock, request));
+							}
 
 							// reset variables
 							bytesRead = 0;
@@ -195,6 +199,14 @@ public final class ServerConnection extends Thread {
 
 	public void setShouldConnect(boolean shouldConnect) {
 		this.shouldConnect = shouldConnect;
+	}
+	
+	public void setNewBlockListener(ListenerNewBlock newListener) {
+		this.newBlockListener = newListener;
+	}
+	
+	public ListenerNewBlock getNewBlockListener() {
+		return this.newBlockListener;
 	}
 
 	// TODO: replace this with heartbeats

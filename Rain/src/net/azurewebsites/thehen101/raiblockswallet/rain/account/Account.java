@@ -42,6 +42,10 @@ public final class Account {
 		this.seed = seed;
 	}
 	
+	public int getNextAddressIndex() {
+		return this.accountAddresses.size();
+	}
+	
 	/**
 	 * Gets an address for a given index. The majority of the times this method
 	 * will be called, index will be zero as that's what is used for the first
@@ -72,7 +76,7 @@ public final class Account {
 		
 		
 		Address newAddress = new Address(
-				this, index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey), REPRESENTATIVE);
+				this, index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey), REPRESENTATIVE, null);
 		//add the generated address to the addres table (hashmap).
 		this.accountAddresses.put(newAddress.getIndex(), newAddress);
 		return newAddress; //and finally return the new address
