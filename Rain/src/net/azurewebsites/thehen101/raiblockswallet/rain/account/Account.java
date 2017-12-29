@@ -42,13 +42,13 @@ public final class Account {
 		this.seed = seed;
 	}
 	
-	public int getNextAddressIndex() {
+	public int getAddressesCount() {
 		return this.accountAddresses.size();
 	}
 	
 	/**
 	 * Gets an address for a given index. The majority of the times this method
-	 * will be called, index will be zero as that's what is used for the first
+	 * will be called, index will be zero as thats what is used for the first
 	 * address. If a second address is made, the index *should* be one, so a
 	 * different Address is returned (but both are generated from the same
 	 * account seed).

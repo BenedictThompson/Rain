@@ -10,6 +10,7 @@ public final class Address {
 	private final byte[] privateKey;
 	private final String address;
 	
+	private boolean isOpened;
 	private String representative;
 	private BigInteger rawBalance;
 	private final ArrayList<String> unpocketedTransactions = new ArrayList<String>();
@@ -24,6 +25,7 @@ public final class Address {
 		this.address = address;
 		this.representative = representative;
 		this.nextPow = nextPOW;
+		this.isOpened = true;
 	}
 	
 	public Account getParent() {
@@ -64,5 +66,13 @@ public final class Address {
 	
 	public ArrayList<String> getUnpocketedTransactions() {
 		return this.unpocketedTransactions;
+	}
+	
+	public boolean getIsOpened() {
+		return this.isOpened;
+	}
+	
+	public void setIsOpened(boolean newState) {
+		this.isOpened = newState;
 	}
 }

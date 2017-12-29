@@ -4,6 +4,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
@@ -12,6 +17,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerManager;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerNewBlock;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.ListenerServerResponse;
+import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.ThreadTransactionPocketer;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.POWFinder;
 
 public final class Rain {
@@ -20,6 +26,7 @@ public final class Rain {
 	private final ServerManager serverManager;
 	private final ListenerNewBlock newBlockListener;
 	private final POWFinder powfinder;
+	private final ThreadTransactionPocketer transactionPocketer;
 	
 	private MessageDigest md;
 	
@@ -34,14 +41,25 @@ public final class Rain {
 			e.printStackTrace();
 		}
 		this.accounts = accounts;
-		this.powfinder = new POWFinder(powThreadCount);
+		for (Account account : this.accounts) 
+			this.initAccount(account);
+		this.powfinder = new POWFinder(this, powThreadCount);
+		this.powfinder.start();
 		this.newBlockListener = new ListenerNewBlock() {
 			@Override
 			public void onNewBlock(RequestWithHeader newBlockNotification) {
 				notifyNewBlock(new String(newBlockNotification.getRequestBytes()));
 			}
 		};
+		this.transactionPocketer = new ThreadTransactionPocketer(this);
+		this.transactionPocketer.start();
 		System.out.println("Rain instance initialised");
+	}
+	
+	private void initAccount(Account account) {
+		if (account.getAddressesCount() == 0) {
+			account.getAddressForIndex(0);
+		}
 	}
 	
 	public String getPreviousHash(final Address address) {
@@ -87,6 +105,53 @@ public final class Rain {
 		return previousHash[0];
 	}
 	
+	public String[] getUnpocketedForAddress(Address address) {
+		String[] unpocketed = new String[10];
+		Arrays.fill(unpocketed, null);
+		String body = 
+				"{" + 
+					"\"action\": \"pending\"," + 
+					"\"account\": \"" + address.getAddress() + "\"," + 
+					"\"count\": \"10\"" + 
+				"}";
+		RequestWithHeader request = new RequestWithHeader(false, body);
+		ListenerServerResponse listener = new ListenerServerResponse() {
+			@Override
+			public void onResponse(RequestWithHeader initialRequest, RequestWithHeader receivedRequest) {
+				if (!Arrays.equals(request.getRequestBytes(), initialRequest.getRequestBytes()))
+					return;
+				
+				String json = new String(receivedRequest.getRequestBytes()).trim();
+
+				if (json.length() != 20) {
+					JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);
+					JsonArray jsonArray = jsonObject.getAsJsonArray("blocks");
+
+					String[] arrName = new Gson().fromJson(jsonArray, String[].class);
+
+					List<String> lstName = new ArrayList<>();
+					lstName = Arrays.asList(arrName);
+
+					for (int i = 0; i < lstName.size(); i++)
+						unpocketed[i] = lstName.get(i);
+				}
+				if (unpocketed[0] == null)
+					unpocketed[0] = "";
+			}
+		};
+		this.serverManager.addListenerToAll(listener);
+		this.serverManager.addToConnectedServerQueue(request);
+		while (unpocketed[0] == null) {
+			try {
+				Thread.sleep(5);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		this.serverManager.removeListenerFromAll(listener);
+		return unpocketed;
+	}
+	
 	public void notifyNewBlock(String newBlock) {
 		newBlock = newBlock.replaceAll("\\s+", "").trim();
 		byte[] digest = null;
@@ -110,18 +175,18 @@ public final class Rain {
 		if (!type.equals("send"))
 			return;
 		
-		int a = newBlock.indexOf("\"account\"") + 9;
+		int a = newBlock.indexOf("\\\"destination\\\"") + 15;
 		String b = newBlock.substring(a);
 		int c = b.indexOf("\"") + 1;
 		String d = b.substring(c);
-		int e = d.indexOf("\"");
-		String account = d.substring(0, e);
+		int e = d.indexOf("\\");
+		String destination = d.substring(0, e);
 		
-		Address add = this.doesAddressStringBelongToUs(account);
+		Address add = this.doesAddressStringBelongToUs(destination);
 		if (add == null)
 			return;
 		
-		System.out.println("Address belongs to us: " + account);
+		System.out.println("Address belongs to us: " + destination);
 		
 		int aa = newBlock.indexOf("\"hash\"") + 6;
 		String ba = newBlock.substring(aa);
@@ -140,7 +205,7 @@ public final class Rain {
 	
 	private Address doesAddressStringBelongToUs(String xrbAddress) {
 		for (Account account : this.accounts) {
-			int max = account.getNextAddressIndex();
+			int max = account.getAddressesCount();
 			for (int i = 0; i < max; i++) {
 				Address address = account.getAddressForIndex(i);
 				if (address.getAddress().equals(xrbAddress))
@@ -148,6 +213,10 @@ public final class Rain {
 			}
 		}
 		return null;
+	}
+	
+	public POWFinder getPOWFinder() {
+		return this.powfinder;
 	}
 	
 	public ServerManager getServerManager() {

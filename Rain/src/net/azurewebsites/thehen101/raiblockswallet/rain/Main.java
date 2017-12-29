@@ -24,9 +24,6 @@ public class Main {
 					connection.setNewBlockListener(rain.getBlockListener());
 				}
 			}
-			
-			System.out.println(rain.getPreviousHash(rain.getAccounts().get(0).getAddressForIndex(2)));
-			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

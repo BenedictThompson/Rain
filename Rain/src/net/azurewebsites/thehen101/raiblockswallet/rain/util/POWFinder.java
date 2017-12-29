@@ -1,18 +1,25 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Random;
 
+import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
+import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
+import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 
 public class POWFinder extends Thread {
+	private final Rain rain;
+	private final HashMap<Address, String> powMap = new HashMap<Address, String>();
 	private final Random random;
 	private final int threadCount;
-	private String work;
-	private byte[] hash;
-	private boolean alive, working;
+	private boolean alive;
 	
-	public POWFinder(int threadsToUse) {
+	public POWFinder(Rain rain, int threadsToUse) {
+		this.rain = rain;
 		this.random = new Random();
 		this.threadCount = threadsToUse;
 		this.alive = true;
@@ -21,38 +28,69 @@ public class POWFinder extends Thread {
 	@Override
 	public void run() {
 		while (this.alive) {
-			if (this.work == null && this.hash != null) {
-				System.out.println("Starting POW generation...");
-				byte[] pow = this.getPOW(this.hash);
-				System.out.println(DataManipulationUtil.bytesToHex(pow));
-				this.work = DataManipulationUtil.bytesToHex(pow);
-				System.out.println("Finished POW generation.");
-				this.working = false;
+			this.syncArrayAndMap();
+			
+			for (Entry<Address, String> entry : this.powMap.entrySet()) {
+				Address key = entry.getKey();
+				String hash = entry.getValue();
+				if (hash != null) {
+					if (hash.equals("") && key.getIsOpened()) {
+						System.out.println("Getting POW for account: " + key.getAddress());
+						String prevBlock = this.rain.getPreviousHash(key);
+						if (prevBlock.equals("")) {
+							key.setIsOpened(false);
+							System.out.println(key.getAddress() + " needs to be opened");
+						} else {
+							byte[] powBytes = this.getPOW(DataManipulationUtil
+									.hexStringToByteArray(prevBlock));
+							String pow = DataManipulationUtil.bytesToHex(powBytes);
+							System.out.println("Found POW: " + pow);
+							this.powMap.put(key, pow);
+						}
+					}
+				}
 			}
+			
 			try {
 				Thread.sleep(10);
-			} catch (Exception e) {
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 	
-	public boolean canGiveWork() {
-		return !this.working;
-	}
-	
-	public boolean giveWork(byte[] hash) {
-		if (this.canGiveWork()) {
-			this.working = true;
-			this.hash = hash;
-			this.work = null;
-			return true;
+	private void syncArrayAndMap() {
+		ArrayList<Address> adds = new ArrayList<Address>();
+		for (Account account : this.rain.getAccounts()) {
+			int max = account.getAddressesCount();
+			for (int i = 0; i < max; i++) {
+				Address add = account.getAddressForIndex(i);
+				adds.add(add);
+				if (this.powMap.get(add) == null) {
+					this.powMap.put(add, "");
+				}
+			}
 		}
-		return false;
+		this.powMap.keySet().retainAll(adds);
 	}
 	
-	public String getWork() {
-		return this.work;
+	public String getPowBlocking(Address address) {
+		String pow = this.getWorkForAddress(address);
+		while (pow.equals("")) {
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			pow = this.getWorkForAddress(address);
+		}
+		return pow;
+	}
+	
+	public String getWorkForAddress(Address address) {
+		String hash = this.powMap.get(address);
+		this.powMap.put(address, "");
+		return hash;
 	}
 	
 	public void setAlive(boolean shouldBeAlive) {
