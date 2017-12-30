@@ -77,6 +77,38 @@ public final class Rain {
 		}
 	}
 	
+	public String getPrice() {
+		String[] price = new String[1];
+		price[0] = null;
+		String body = "{ \"command\": \"price\" }";
+		RequestWithHeader request = new RequestWithHeader(false, body);
+		ListenerServerResponse listener = new ListenerServerResponse() {
+			@Override
+			public void onResponse(RequestWithHeader initialRequest, RequestWithHeader receivedRequest) {
+				if (!Arrays.equals(request.getRequestBytes(), initialRequest.getRequestBytes()))
+					return;
+				
+				String json = new String(receivedRequest.getRequestBytes()).trim();
+				
+				JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);
+				JsonPrimitive p = jsonObject.getAsJsonPrimitive("price");
+				
+				price[0] = p.getAsString();
+			}
+		};
+		this.serverManager.addListenerToAll(listener);
+		this.serverManager.addToConnectedServerQueue(request);
+		while (price[0] == null) {
+			try {
+				Thread.sleep(5);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		this.serverManager.removeListenerFromAll(listener);
+		return price[0];
+	}
+	
 	public BigInteger[] getAddressBalance(final Address address) {
 		BigInteger[] balance = new BigInteger[2];
 		Arrays.fill(balance, null);

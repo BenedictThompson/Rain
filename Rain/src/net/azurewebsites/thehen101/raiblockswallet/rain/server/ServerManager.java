@@ -37,6 +37,15 @@ public final class ServerManager {
 		System.out.println("Best server chosen with a reponse time of " 
 				+ bestResponseTime + "ms: " + list.get(bestIndex).getConnection().getIP());
 		this.bestServerIndex = bestIndex;
+		
+		for (int i = 0; i < list.size(); i++) {
+			if (i != this.bestServerIndex) {
+				ServerConnectionWithInfo scwi = list.get(i);
+				scwi.getConnection().setShouldConnect(false);
+				System.out.println("Closed unneeded server connection: " + scwi.getConnection().getIP());
+			}
+		}
+		
 		this.connections = list;
 	}
 	
@@ -105,14 +114,7 @@ public final class ServerManager {
 	
 	
 	public void addToConnectedServerQueue(RequestWithHeader request) {
-		ServerConnection connection = null;
-		boolean foundGoodServer = false;
-		while (!foundGoodServer) {
-			connection = this.connections.get(this.bestServerIndex).getConnection();
-			if (connection.getIsConnected())
-				foundGoodServer = true;
-		}
-		connection.addToSendQueue(request);
+		this.connections.get(this.bestServerIndex).getConnection().addToSendQueue(request);
 	}
 	
 	public void addListenerToAll(ListenerServerResponse listener) {
