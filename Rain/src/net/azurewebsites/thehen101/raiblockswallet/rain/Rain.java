@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -33,10 +34,13 @@ public final class Rain {
 	private final POWFinder powfinder;
 	private final ThreadTransactionPocketer transactionPocketer;
 	private final ThreadBalanceUpdater balanceUpdater;
+	private final String[] defaultReps;
 	
 	private MessageDigest md;
 	
-	public Rain(ArrayList<ServerConnection> serverConnections, ArrayList<Account> accounts, int powThreadCount) {
+	public Rain(ArrayList<ServerConnection> serverConnections, ArrayList<Account> accounts, 
+			int powThreadCount, String[] defaultReps) {
+		this.defaultReps = defaultReps;
 		this.serverManager = new ServerManager(serverConnections);
 		this.accounts = accounts;
 		for (Account account : this.accounts)
@@ -75,6 +79,10 @@ public final class Rain {
 		if (account.getAddressesCount() == 0) {
 			account.getAddressForIndex(0);
 		}
+	}
+	
+	public String getDefaultRepresentative() {
+		return this.defaultReps[new Random().nextInt(this.defaultReps.length)];
 	}
 	
 	public String getPrice() {
