@@ -24,7 +24,8 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.server.listener.Listener
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.ThreadTransactionPocketer;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionChange;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionSend;
-import net.azurewebsites.thehen101.raiblockswallet.rain.util.POWFinder;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.POWFinder;
 
 public final class Rain {
 	private final ArrayList<byte[]> recentBlockHashes;
@@ -79,6 +80,11 @@ public final class Rain {
 		if (account.getAddressesCount() == 0) {
 			account.getAddressForIndex(0);
 		}
+	}
+	
+	public void addAccount(Account account) {
+		this.accounts.add(account);
+		SettingsLoader.INSTANCE.saveAccounts(accounts);
 	}
 	
 	public String getDefaultRepresentative() {

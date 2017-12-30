@@ -39,12 +39,25 @@ public final class Account {
 	}
 	
 	public Account(byte[] seed, String defaultRep) {
+		this(seed, defaultRep, 0);
+	}
+	
+	public Account(byte[] seed, String defaultRep, int addressCount) {
 		this.seed = seed;
 		this.defaultRep = defaultRep;
+		this.getAddressForIndex(addressCount);
 	}
 	
 	public int getAddressesCount() {
 		return this.accountAddresses.size();
+	}
+	
+	public Address generateNextAddress() {
+		return this.getAddressForIndex(this.getAddressesCount());
+	}
+	
+	public byte[] getSeed() {
+		return this.seed;
 	}
 	
 	/**

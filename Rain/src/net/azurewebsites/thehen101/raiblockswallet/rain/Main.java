@@ -1,46 +1,44 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain;
 
-import java.io.File;
 import java.util.ArrayList;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import java.util.Random;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
-import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
-import net.azurewebsites.thehen101.raiblockswallet.rain.util.FileUtil;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.LoadedAccount;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.LoadedServer;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
 
 public class Main {
 	public static void main(String[] args) {
 		try {
-			String defaultRepresentatives = FileUtil.fileToString(new File("defaultRepresentatives.json"));
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			String[] reps = gson.fromJson(defaultRepresentatives, String[].class);
+			//NOTE: the first thing to happen must be the password ****MUST**** set in SettingsLoader
+			SettingsLoader.INSTANCE.setPassword("ChangeME"); //TODO: do this in a gui so the user can enter it
 			
-			System.out.println(reps.length);
-			System.out.println(reps[0]);
-			System.out.println(reps[1]);
+			LoadedServer[] servers = SettingsLoader.INSTANCE.getDefaultServers();
+			LoadedAccount[] accs = SettingsLoader.INSTANCE.getAccounts();
+			String[] representatives = SettingsLoader.INSTANCE.getDefaultRepresentatives();
 			
-			
-			System.exit(0);
-			ArrayList<ServerConnection> connections = new ArrayList<ServerConnection>();
-			connections.add(new ServerConnection("192.168.1.4", 37076, null));
-			
+			ArrayList<ServerConnection> serverConnections = new ArrayList<ServerConnection>();
 			ArrayList<Account> accounts = new ArrayList<Account>();
-			accounts.add(new Account(
-					DataManipulationUtil
-					.hexStringToByteArray(
-							"Snip"), reps[0]));
-			Rain rain = new Rain(connections, accounts, 8, reps);
 			
-			for (ServerConnection connection : connections) {
-				if (connection.getNewBlockListener() == null) {
+			for (LoadedServer ls : servers)
+				serverConnections.add(new ServerConnection(ls.getHostnameOrIP(), ls.getPort(), null));
+			
+			for (LoadedAccount la : accs) 
+				accounts.add(new Account(la.getSeed(), 
+						representatives[new Random().nextInt(representatives.length)], la.getMaxIndex()));
+			
+			int powThreads = Runtime.getRuntime().availableProcessors() - 1;
+			if (powThreads == 0)
+				powThreads = 1;
+			
+			Rain rain = new Rain(serverConnections, accounts, powThreads, representatives);
+			
+			for (ServerConnection connection : serverConnections)
+				if (connection.getNewBlockListener() == null)
 					connection.setNewBlockListener(rain.getBlockListener());
-				}
-			}
 			
-			Thread.sleep(500);			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

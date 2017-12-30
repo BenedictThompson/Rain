@@ -1,4 +1,4 @@
-package net.azurewebsites.thehen101.raiblockswallet.rain.util;
+package net.azurewebsites.thehen101.raiblockswallet.rain.util.hash;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,7 +9,7 @@ import java.util.Random;
 import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
-import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
 
 public class POWFinder extends Thread {
 	private final Rain rain;
@@ -134,7 +134,8 @@ public class POWFinder extends Thread {
 							blake.update(hash);
 							byte[] digest = DataManipulationUtil.swapEndian(blake.digest());
 							if (overThreshold(digest))
-								System.arraycopy(DataManipulationUtil.swapEndian(bytes), 0, pow, 0, 8);
+								System.arraycopy(DataManipulationUtil.swapEndian(bytes), 0,
+										pow, 0, 8);
 						}
 					}
 				}
