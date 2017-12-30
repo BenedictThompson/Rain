@@ -8,8 +8,9 @@ Currently a work in progress. Todo:
 - ~~Finish automatic POW generation~~
 - ~~Add easy send and change methods~~
 - ~~Add automatic opening of addresses~~
-- Add server connection validation
-- Add price checking
+- ~~Add server connection validation~~
+- ~~Add price checking~~
+- Add default representative management
 - Add secure saving/loading of accounts (keys)
 - Add GUI
 
