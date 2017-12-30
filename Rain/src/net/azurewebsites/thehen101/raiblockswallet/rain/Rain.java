@@ -38,8 +38,6 @@ public final class Rain {
 	
 	public Rain(ArrayList<ServerConnection> serverConnections, ArrayList<Account> accounts, int powThreadCount) {
 		this.serverManager = new ServerManager(serverConnections);
-		for (ServerConnection connection : this.serverManager.getConnections())
-			connection.start();
 		this.accounts = accounts;
 		for (Account account : this.accounts)
 			account.getAddressForIndex(0);
