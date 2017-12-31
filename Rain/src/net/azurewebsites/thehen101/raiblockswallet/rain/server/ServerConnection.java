@@ -42,7 +42,9 @@ public final class ServerConnection extends Thread {
 	public void run() {
 		while (this.currentSocket == null) {
 			try {
+				System.out.println("Connecting to RainServer at: " + IP + "...");
 				this.currentSocket = new Socket(IP, port);
+				System.out.println("Connected! (" + IP + ")");
 			} catch (Exception e) {
 				System.out.println("ERROR: could not connect to RainServer at: " 
 						+ this.IP + ":" + this.port);
@@ -118,7 +120,8 @@ public final class ServerConnection extends Thread {
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
-					shouldConnect = false;
+					System.out.println("Connection seems to have been lost: " + IP);
+					//shouldConnect = false;
 				}
 			}
 		};
@@ -126,8 +129,11 @@ public final class ServerConnection extends Thread {
 
 		while (this.shouldConnect) {
 			try {
-				if (this.currentSocket == null)
+				if (this.currentSocket == null) {
+					System.out.println("Connecting to RainServer at: " + IP + "...");
 					this.currentSocket = new Socket(IP, port);
+					System.out.println("Connected! (" + IP + ")");
+				}
 
 				if (this.sendQueue.size() > 0 && receivedResponse) {
 					receivedResponse = false;

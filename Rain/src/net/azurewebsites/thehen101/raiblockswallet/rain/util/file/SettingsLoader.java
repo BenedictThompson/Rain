@@ -31,18 +31,18 @@ public enum SettingsLoader {
 	private final String 
 		defaultRepresentatives = 
 			"[" + newline +
-			"  \"xrb_1hza3f7wiiqa7ig3jczyxj5yo86yegcmqk3criaz838j91sxcckpfhbhhra1\"," + newline +
-			"  \"xrb_1awsn43we17c1oshdru4azeqjz9wii41dy8npubm4rg11so7dx3jtqgoeahy\"" + newline +
+			"  \"xrb_15dk1r8wgw57gpebspnadfayiuwp9wy49qnrzp7xf7jof9u6rfgeju4x85du\"," + newline +
+			"  \"xrb_19pnoe8nttqffs78mpr98kowzf6s3ug5czmmkj5e4ogbydcoxkjcbctp8hwn\"" + newline +
 			"]" + newline,
 			
 		defaultServers = 
 			"[" + newline +
 			"  {" + newline +
-			"    \"hostnameOrIP\": \"192.168.1.4\"," + newline +
+			"    \"hostnameOrIP\": \"virginia.thehen101.co.uk\"," + newline +
 			"    \"port\": 37076" + newline +
 			"  }," + newline +
 			"  {" + newline +
-			"    \"hostnameOrIP\": \"192.168.1.5\"," + newline +
+			"    \"hostnameOrIP\": \"london.thehen101.co.uk\"," + newline +
 			"    \"port\": 37076" + newline +
 			"  }" + newline +
 			"]" + newline;

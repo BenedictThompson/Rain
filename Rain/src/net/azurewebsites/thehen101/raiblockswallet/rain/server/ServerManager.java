@@ -15,7 +15,7 @@ public final class ServerManager {
 	public ServerManager(ArrayList<ServerConnection> connections) {
 		ArrayList<ServerConnectionWithInfo> list = new ArrayList<ServerConnectionWithInfo>();
 		for (ServerConnection connection : connections) {
-			ServerConnectionWithInfo scwi = this.getInfoForConnection(connection, 15000);
+			ServerConnectionWithInfo scwi = this.getInfoForConnection(connection, 30000);
 			if (scwi != null)
 				list.add(scwi);
 		}
