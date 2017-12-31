@@ -18,6 +18,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.swing.JOptionPane;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -101,6 +102,8 @@ public enum SettingsLoader {
 					LoadedAccount[].class);
 		} catch (Exception e) {
 			e.printStackTrace();
+			JOptionPane.showMessageDialog(null, "Could not decrypt accounts. Wrong password?",
+					"Rain: Fatal error", JOptionPane.ERROR_MESSAGE);
 			System.out.println("Failed to decrypt accounts... exiting...");
 			System.exit(-1);
 		}

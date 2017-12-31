@@ -3,7 +3,11 @@ package net.azurewebsites.thehen101.raiblockswallet.rain;
 import java.util.ArrayList;
 import java.util.Random;
 
+import com.alee.laf.WebLookAndFeel;
+
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
+import net.azurewebsites.thehen101.raiblockswallet.rain.gui.RainFramePassword;
+import net.azurewebsites.thehen101.raiblockswallet.rain.gui.RainFrameSplash;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.LoadedAccount;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.LoadedServer;
@@ -12,9 +16,18 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader
 public class Main {
 	public static void main(String[] args) {
 		try {
-			//NOTE: the first thing to happen must be the password ****MUST**** set in SettingsLoader
-			SettingsLoader.INSTANCE.setPassword("ChangeME"); //TODO: do this in a gui so the user can enter it
+			WebLookAndFeel.install();
 			
+			RainFrameSplash rfs = new RainFrameSplash();
+			rfs.show();
+			
+			RainFramePassword rfp = new RainFramePassword();
+			rfp.show();
+			
+			while (!rfp.passwordSet())
+				Thread.sleep(10);
+			
+			//initialise client
 			LoadedServer[] servers = SettingsLoader.INSTANCE.getDefaultServers();
 			LoadedAccount[] accs = SettingsLoader.INSTANCE.getAccounts();
 			String[] representatives = SettingsLoader.INSTANCE.getDefaultRepresentatives();
@@ -39,6 +52,9 @@ public class Main {
 				if (connection.getNewBlockListener() == null)
 					connection.setNewBlockListener(rain.getBlockListener());
 			
+			//initialisation completed
+			
+			rfs.destroy();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
