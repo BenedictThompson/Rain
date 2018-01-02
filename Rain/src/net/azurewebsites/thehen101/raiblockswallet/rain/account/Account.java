@@ -11,6 +11,8 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
@@ -21,6 +23,7 @@ public final class Account {
 	public static final HashMap<Character, String> ACCOUNT_BIN_TABLE = 
 			new HashMap<Character, String>();
 	private final String defaultRep;
+	private final Rain rain;
 	
 	private final HashMap<Integer, Address> accountAddresses = 
 			new HashMap<Integer, Address>(); //an index will return an address
@@ -38,11 +41,12 @@ public final class Account {
 		}
 	}
 	
-	public Account(byte[] seed, String defaultRep) {
-		this(seed, defaultRep, 0);
+	public Account(Rain rain, byte[] seed, String defaultRep) {
+		this(rain, seed, defaultRep, 0);
 	}
 	
-	public Account(byte[] seed, String defaultRep, int addressCount) {
+	public Account(Rain rain, byte[] seed, String defaultRep, int addressCount) {
+		this.rain = rain;
 		this.seed = seed;
 		this.defaultRep = defaultRep;
 		this.getAddressForIndex(addressCount);
@@ -53,7 +57,9 @@ public final class Account {
 	}
 	
 	public Address generateNextAddress() {
-		return this.getAddressForIndex(this.getAddressesCount());
+		Address a = this.getAddressForIndex(this.getAddressesCount());
+		SettingsLoader.INSTANCE.saveAccounts(this.rain.getAccounts());
+		return a;
 	}
 	
 	public byte[] getSeed() {

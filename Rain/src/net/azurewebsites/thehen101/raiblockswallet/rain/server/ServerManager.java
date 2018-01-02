@@ -91,7 +91,7 @@ public final class ServerManager {
 				System.out.println(
 						connection.getIP() + " response time: " + timeTaken + "ms, connected count: " + connected[0]);
 				connection.removeListener(listener);
-				scwi[0] = new ServerConnectionWithInfo(connection, timeTaken, timeTaken);
+				scwi[0] = new ServerConnectionWithInfo(connection, timeTaken, connected[0]);
 			}
 		};
 		thread.start();
@@ -112,6 +112,9 @@ public final class ServerManager {
 		return scwi[0];
 	}
 	
+	public int getBestServer() {
+		return this.bestServerIndex;
+	}
 	
 	public void addToConnectedServerQueue(RequestWithHeader request) {
 		this.connections.get(this.bestServerIndex).getConnection().addToSendQueue(request);

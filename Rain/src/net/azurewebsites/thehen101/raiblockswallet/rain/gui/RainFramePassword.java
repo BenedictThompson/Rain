@@ -93,6 +93,7 @@ public class RainFramePassword extends RainFrame {
 		this.frame.setAlwaysOnTop(true);
 		this.frame.setIconImages(this.getIcons());
 		this.frame.getContentPane().add(this.panel);
+		this.frame.setResizable(false);
 		this.frame.setVisible(true);
 	}
 	

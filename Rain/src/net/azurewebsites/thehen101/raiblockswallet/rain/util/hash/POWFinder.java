@@ -1,5 +1,7 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.util.hash;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,6 +15,7 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUti
 
 public class POWFinder extends Thread {
 	private final Rain rain;
+	private final ArrayList<ActionListener> listeners = new ArrayList<ActionListener>();
 	private final HashMap<Address, String> powMap = new HashMap<Address, String>();
 	private final HashMap<Address, Boolean> openPowMap = new HashMap<Address, Boolean>();
 	private final Random random;
@@ -36,6 +39,7 @@ public class POWFinder extends Thread {
 				String hash = entry.getValue();
 				if (hash != null) {
 					if (hash.equals("")) {
+						this.notifyListeners(true);
 						System.out.println("Getting POW for account: " + key.getAddress());
 						String prevBlock = this.rain.getPreviousHash(key);
 						boolean calculateOpenAlready = this.openPowMap.get(key) == null ? false
@@ -55,6 +59,7 @@ public class POWFinder extends Thread {
 							System.out.println("Found POW: " + pow);
 							this.powMap.put(key, pow);
 						}
+						this.notifyListeners(false);
 					}
 				}
 			}
@@ -103,6 +108,16 @@ public class POWFinder extends Thread {
 	
 	public void setAlive(boolean shouldBeAlive) {
 		this.alive = shouldBeAlive;
+	}
+	
+	public void addActionListener(ActionListener al) {
+		this.listeners.add(al);
+	}
+	
+	private void notifyListeners(boolean genPow) {
+		for (int i = 0; i < this.listeners.size(); i++) {
+			this.listeners.get(i).actionPerformed(new ActionEvent(this, genPow ? 1 : 0, "pow"));
+		}
 	}
 	
 	private boolean overThreshold(byte[] bytes) {

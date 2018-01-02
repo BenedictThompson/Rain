@@ -29,6 +29,11 @@ public final class Address {
 		this.isOpened = isOpened;
 	}
 	
+	@Override
+	public String toString() {
+		return this.address;
+	}
+	
 	public Account getParent() {
 		return this.parent;
 	}
