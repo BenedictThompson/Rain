@@ -16,35 +16,35 @@ public class ThreadTransactionPocketer extends Thread {
 	
 	@Override
 	public void run() {
-		//pockets previously unpocketed (historic) transactions
+		//queues transactions to be pocketed
 		Thread pocketer = new Thread() {
 			@Override
 			public void run() {
 				while (alive) {
-					for (Account account : rain.getAccounts()) {
-						int max = account.getAddressesCount();
-						for (int i = 0; i < max; i++) {
-							Address address = account.getAddressForIndex(i);
-							String[] unpocketed = rain.getUnpocketedForAddress(address);
-							for (String hash : unpocketed) {
-								if (hash != null)
-									if (!hash.equals("")) {
-										if (!address.getUnpocketedTransactions().contains(hash)) {
-											System.out.println("Adding transaction to pocket: " 
-													+ address.getAddress() + " " +hash);
-											address.getUnpocketedTransactions().add(hash);
-										}
-									}
-							}
-							try {
-								Thread.sleep(200);
-							} catch (InterruptedException e) {
-								e.printStackTrace();
+					for (int i = 0; i < rain.getAccounts().size(); i++) {
+						Account a = rain.getAccounts().get(i);
+						for (int ii = 0; ii < a.getMaxAddressIndex(); ii++) {
+							boolean addressAtIndex = a.isAddressAtIndex(ii);
+							if (addressAtIndex) {
+								Address address = a.getAddressAtIndex(ii);
+								String[] unpocketedHashes = rain.getUnpocketedForAddress(address);
+								for (int iii = 0; iii < unpocketedHashes.length; iii++) {
+									String unpocketedHash = unpocketedHashes[iii];
+									if (unpocketedHash != null)
+										if (!unpocketedHash.equals(""))
+											if (!address.getUnpocketedTransactions().contains(unpocketedHash))
+												address.getUnpocketedTransactions().add(unpocketedHash);
+								}
+								try {
+									Thread.sleep(500);
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
 							}
 						}
 					}
 					try {
-						Thread.sleep(60000);
+						Thread.sleep(20000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -53,26 +53,31 @@ public class ThreadTransactionPocketer extends Thread {
 		};
 		pocketer.start();
 		while (this.alive) {
-			//pockets live transactions
-			for (Account account : this.rain.getAccounts()) {
-				int max = account.getAddressesCount();
-				for (int i = 0; i < max; i++) {
-					Address address = account.getAddressForIndex(i);
-					for (int ii = 0; ii < address.getUnpocketedTransactions().size(); ii++) {
-						String unpocketedHash = address.getUnpocketedTransactions().get(ii);
-						System.out.println("Pocketing for address: " + address.getAddress() + " " + unpocketedHash);
-						this.pocket(address, unpocketedHash);
-						address.getUnpocketedTransactions().remove(unpocketedHash);
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
+			//pockets transactions
+			for (int i = 0; i < this.rain.getAccounts().size(); i++) {
+				Account a = rain.getAccounts().get(i);
+				for (int ii = 0; ii < a.getMaxAddressIndex(); ii++) {
+					boolean addressAtIndex = a.isAddressAtIndex(ii);
+					if (addressAtIndex) {
+						Address address = a.getAddressAtIndex(ii);
+						if (this.rain.getPOWFinder().isPOWForAddress(address)) {
+							for (int iii = 0; iii < address.getUnpocketedTransactions().size(); iii++) {
+								String unpocketedHash = address.getUnpocketedTransactions().get(iii);
+								System.out.println("Pocketing for address: " + address.getAddress() + " " + unpocketedHash);
+								this.pocket(address, unpocketedHash);
+								address.getUnpocketedTransactions().remove(unpocketedHash);
+								try {
+									Thread.sleep(200);
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+							}
 						}
 					}
 				}
 			}
 			try {
-				Thread.sleep(200);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -81,9 +86,10 @@ public class ThreadTransactionPocketer extends Thread {
 	
 	private void pocket(Address address, String hash) {
 		RequestWithHeader rwh = null;
+		String prevHash = this.rain.getPreviousHash(address);
 		if (address.getIsOpened()) {
 			TransactionReceive receive = new TransactionReceive(this.rain.getPOWFinder()
-					.getPowBlocking(address), address, this.rain.getPreviousHash(address), hash);
+					.getPowBlocking(address), address, prevHash, hash);
 			rwh = new RequestWithHeader(false, receive.getAsJSON());
 		} else {
 			TransactionOpen open = new TransactionOpen(
@@ -91,8 +97,8 @@ public class ThreadTransactionPocketer extends Thread {
 			rwh = new RequestWithHeader(false, open.getAsJSON());
 			address.setIsOpened(true);
 		}
+		System.out.println(new String(rwh.getRequestBytes()));
 		this.rain.getServerManager().addToConnectedServerQueue(rwh);
-		this.rain.getBalanceUpdater().updateBalance(address);
 	}
 	
 	public boolean getAlive() {

@@ -10,13 +10,11 @@ public class EventOurBlockReceived extends Event {
 	private final Address add;
 	private final Transaction.Type type;
 	private final BigInteger amount;
-	private final String address;
 	
-	public EventOurBlockReceived(Address add, Transaction.Type type, BigInteger amount, String address) {
+	public EventOurBlockReceived(Address add, Transaction.Type type, BigInteger amount) {
 		this.add = add;
 		this.type = type;
 		this.amount = amount;
-		this.address = address;
 	}
 
 	public Address getAdd() {
@@ -29,9 +27,5 @@ public class EventOurBlockReceived extends Event {
 
 	public BigInteger getAmount() {
 		return amount;
-	}
-
-	public String getAddress() {
-		return address;
 	}
 }

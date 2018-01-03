@@ -1,15 +1,21 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.util.file;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import javax.crypto.Cipher;
@@ -23,7 +29,10 @@ import javax.swing.JOptionPane;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
+import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.POWFinder;
 
 public enum SettingsLoader {
 	INSTANCE;
@@ -58,13 +67,20 @@ public enum SettingsLoader {
 			(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE,
 			(byte) 0xCA, (byte) 0xFE, (byte) 0xBA, (byte) 0xBE};
 	
-	private final File rainDirectory = new File(System.getProperty("user.home") + File.separator + "Rain"); { 
+	private final File rainDirectory = new File(System.getProperty("user.home") + File.separator + "Rain");
+	private final File logDirectory = new File(rainDirectory + File.separator + "logs"); { 
 		rainDirectory.mkdirs();
+		logDirectory.mkdirs();
+		logFile = new File(logDirectory + File.separator + "rainLogAtEpoch" + Instant.now().getEpochSecond() + ".log");
+		this.setPrintStream();
 	}
 	
-	private final File accountFile = new File(rainDirectory + File.separator + "accounts.json"),
+	private final File 
+			accountFile = new File(rainDirectory + File.separator + "accounts.json"),
 			representativesFile = new File(rainDirectory + File.separator + "defaultRepresentatives.json"),
-			serversFile = new File(rainDirectory + File.separator + "servers.json");
+			serversFile = new File(rainDirectory + File.separator + "servers.json"),
+			powFile = new File(rainDirectory + File.separator + "cachedPOW.json"),
+			logFile;
 	
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	
@@ -84,8 +100,9 @@ public enum SettingsLoader {
 			}
 			
 			byte[] seed = this.getSecureSeed();
-			int max = 0;
-			LoadedAccount[] la = new LoadedAccount[] { new LoadedAccount(seed, max) };
+			ArrayList<Boolean> genned = new ArrayList<Boolean>();
+			genned.add(0, true);
+			LoadedAccount[] la = new LoadedAccount[] { new LoadedAccount(seed, genned) };
 			String js = gson.toJson(la);
 			try {
 				FileUtil.bytesToFile(this.accountFile, this.encryptBytes(js.getBytes(), this.password));
@@ -114,7 +131,7 @@ public enum SettingsLoader {
 		LoadedAccount[] toSave = new LoadedAccount[accounts.size()];
 		for (int i = 0; i < toSave.length; i++) {
 			Account a = accounts.get(i);
-			toSave[i] = new LoadedAccount(a.getSeed(), a.getAddressesCount());
+			toSave[i] = new LoadedAccount(a.getSeed(), a.getShouldGenerateAddressIndex());
 		}
 		String json = gson.toJson(toSave);
 		if (!this.accountFile.exists()) {
@@ -132,6 +149,97 @@ public enum SettingsLoader {
 			System.out.println("Could not save accounts. FATAL! Exiting...");
 			System.exit(-1);
 		}
+	}
+	
+	public void cachePOW(POWFinder powFinder) {
+		HashMap<String, String> a = new HashMap<String, String>();
+		HashMap<String, Boolean> b = new HashMap<String, Boolean>();
+		ArrayList<String> c = new ArrayList<String>();
+		
+	    Iterator<Entry<Address, String>> it0 = powFinder.getPOWMap().entrySet().iterator();
+	    while (it0.hasNext()) {
+	        Map.Entry<Address, String> pair = (Map.Entry<Address, String>) it0.next();
+	        a.put(pair.getKey().getAddress(), pair.getValue());
+	    }
+	    
+	    Iterator<Entry<Address, Boolean>> it1 = powFinder.getOpenPOWMap().entrySet().iterator();
+	    while (it1.hasNext()) {
+	        Map.Entry<Address, Boolean> pair = (Map.Entry<Address, Boolean>) it1.next();
+	        b.put(pair.getKey().getAddress(), pair.getValue());
+	    }
+	    
+	    for (int i = 0; i < powFinder.getGeneratePowAddresses().size(); i++) {
+	    	Address oculus = powFinder.getGeneratePowAddresses().get(i);
+	    	c.add(i, oculus.getAddress());
+	    }
+	    
+		LoadedPOWFinder lpf = new LoadedPOWFinder(powFinder.getThreadCount(), a, b, c);
+		String json = gson.toJson(lpf);
+		if (!this.powFile.exists()) {
+			try {
+				this.powFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		try {
+			FileUtil.bytesToFile(this.powFile, json.getBytes());
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Could not save POW. FATAL! Exiting...");
+			System.exit(-1);
+		}
+	}
+	
+	public POWFinder getCachedPOW(Rain rain) {
+		boolean powFileExists = this.powFile.exists();
+		if (powFileExists) {
+			LoadedPOWFinder lpf = new Gson().fromJson(
+					FileUtil.fileToString(this.powFile), LoadedPOWFinder.class);
+			
+			HashMap<Address, String> a = new HashMap<Address, String>();
+			HashMap<Address, Boolean> b = new HashMap<Address, Boolean>();
+			ArrayList<Address> c = new ArrayList<Address>();
+			
+		    Iterator<Entry<String, String>> it0 = lpf.getPowMap().entrySet().iterator();
+		    while (it0.hasNext()) {
+		        Map.Entry<String, String> pair = (Map.Entry<String, String>) it0.next();
+		        a.put(addressForAddressString(rain, pair.getKey()), pair.getValue());
+		    }
+		    
+		    Iterator<Entry<String, Boolean>> it1 = lpf.getOpenPowMap().entrySet().iterator();
+		    while (it1.hasNext()) {
+		        Map.Entry<String, Boolean> pair = (Map.Entry<String, Boolean>) it1.next();
+		        b.put(addressForAddressString(rain, pair.getKey()), pair.getValue());
+		    }
+		    
+		    for (int i = 0; i < lpf.getGeneratePowAddresses().size(); i++) {
+		    	String h = lpf.getGeneratePowAddresses().get(i);
+		    	c.add(i, addressForAddressString(rain, h));
+		    }
+			
+			return new POWFinder(rain, lpf.getThreadsToUse(), a, b, c, false);
+		} else {
+			int powThreads = Runtime.getRuntime().availableProcessors() - 1;
+			if (powThreads == 0)
+				powThreads = 1;
+			return new POWFinder(rain, powThreads);
+		}
+	}
+	
+	private final Address addressForAddressString(Rain rain, String add) {
+		for (int i = 0; i < rain.getAccounts().size(); i++) {
+			Account a = rain.getAccounts().get(i);
+			for (int ii = 0; ii < a.getMaxAddressIndex(); ii++) {
+				boolean valid = a.isAddressAtIndex(ii);
+				if (valid) {
+					Address c = a.getAddressAtIndex(ii);
+					if (c.getAddress().equals(add))
+						return c;
+				}
+			}
+		}
+		return null;
 	}
 	
 	public String[] getDefaultRepresentatives() {
@@ -198,6 +306,23 @@ public enum SettingsLoader {
 	private byte[] decryptBytes(byte[] encrypted, String pass) throws Exception {
 		Cipher cipher = makeCipher(pass, false);
 		return cipher.doFinal(encrypted);
+	}
+	
+	public File getRainDirectory() {
+		return this.rainDirectory;
+	}
+	
+	private void setPrintStream() {
+		try {
+			if (this.logFile.exists())
+				this.logFile.createNewFile();
+			FileOutputStream fos = new FileOutputStream(this.logFile);
+			TeeOutputStream myOut = new TeeOutputStream(System.out, fos);
+			PrintStream ps = new PrintStream(myOut, true);
+			System.setOut(ps);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	//thanks stackoverflow!! code only solution, we don't have to mess with files

@@ -11,12 +11,12 @@ import java.util.Random;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
-import net.azurewebsites.thehen101.raiblockswallet.rain.account.ThreadBalanceUpdater;
-import net.azurewebsites.thehen101.raiblockswallet.rain.event.EventBalanceUpdate;
+import net.azurewebsites.thehen101.raiblockswallet.rain.account.BalanceUpdater;
 import net.azurewebsites.thehen101.raiblockswallet.rain.event.EventOurBlockReceived;
 import net.azurewebsites.thehen101.raiblockswallet.rain.event.base.EventManager;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.RequestWithHeader;
@@ -38,37 +38,28 @@ public final class Rain {
 	private final ListenerNewBlock newBlockListener;
 	private final POWFinder powfinder;
 	private final ThreadTransactionPocketer transactionPocketer;
-	private final ThreadBalanceUpdater balanceUpdater;
 	private final EventManager eventManager;
 	private final String[] defaultReps;
+	private final BalanceUpdater balanceUpdater;
 	
 	private MessageDigest md;
 	
-	public Rain(ArrayList<ServerConnection> serverConnections, 
-			int powThreadCount, String[] defaultReps) {
+	public Rain(ArrayList<ServerConnection> serverConnections, ArrayList<Account> accounts,
+			String[] defaultReps) {
 		this.eventManager = new EventManager();
+		this.balanceUpdater = new BalanceUpdater(this);
 		this.defaultReps = defaultReps;
 		this.serverManager = new ServerManager(serverConnections);
-		this.accounts = new ArrayList<Account>();
-		this.balanceUpdater = new ThreadBalanceUpdater(this);
-		this.balanceUpdater.start();
-		while (!this.balanceUpdater.hasInitiallyCheckedAccounts()) {
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-		}
+		this.accounts = accounts;
 		this.recentBlockHashes = new ArrayList<byte[]>();
 		try {
 			this.md = MessageDigest.getInstance("MD5");
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
-		for (Account account : this.accounts) 
-			this.initAccount(account);
-		this.powfinder = new POWFinder(this, powThreadCount);
+		this.powfinder = SettingsLoader.INSTANCE.getCachedPOW(this);
 		this.powfinder.start();
+		SettingsLoader.INSTANCE.cachePOW(this.powfinder);
 		this.newBlockListener = new ListenerNewBlock() {
 			@Override
 			public void onNewBlock(RequestWithHeader newBlockNotification) {
@@ -77,6 +68,22 @@ public final class Rain {
 		};
 		this.transactionPocketer = new ThreadTransactionPocketer(this);
 		this.transactionPocketer.start();
+		
+		//set open status
+		for (int i = 0; i < getAccounts().size(); i++) {
+			Account a = getAccounts().get(i);
+			for (int ii = 0; ii < a.getMaxAddressIndex(); ii++)
+				if (a.isAddressAtIndex(ii)) {
+					this.getPreviousHash(a.getAddressAtIndex(ii));
+					try {
+						//so we don't get rate limited
+						Thread.sleep(51);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+		}
+		
 		System.out.println("Rain instance initialised");
 	}
 	
@@ -84,16 +91,11 @@ public final class Rain {
 		return this.eventManager;
 	}
 	
-	private void initAccount(Account account) {
-		if (account.getAddressesCount() == 0) {
-			account.getAddressForIndex(0);
-		}
-	}
-	
 	public void addAccount(Account account) {
-		account.getAddressForIndex(0);
-		this.accounts.add(account);
-		SettingsLoader.INSTANCE.saveAccounts(accounts);
+		if (!this.accounts.contains(account)) {
+			this.accounts.add(account);
+			SettingsLoader.INSTANCE.saveAccounts(accounts);
+		}
 	}
 	
 	public String getDefaultRepresentative() {
@@ -180,7 +182,7 @@ public final class Rain {
 				this.getPreviousHash(sendFrom), sendFrom, sendTo, remaining);
 		this.getServerManager().addToConnectedServerQueue(new RequestWithHeader(false,
 				send.getAsJSON()));
-		this.balanceUpdater.updateBalance(sendFrom);
+		System.out.println(send.getAsJSON());
 	}
 	
 	public void changeRepresentative(final Address address, String newRep) {
@@ -210,6 +212,7 @@ public final class Rain {
 					String a = returned.substring(returned.indexOf("xrb_"));
 					String add = a.substring(0, a.indexOf("\""));
 					if (!add.equals(address.getAddress())) {
+						address.setIsOpened(false);
 						System.out.println(address.getAddress() + " needs to be opened.");
 						previousHash[0] = "";
 					} else {
@@ -295,92 +298,49 @@ public final class Rain {
 				return;
 		}
 		
-		int z = newBlock.indexOf("\\\"type\\\"") + 8;
-		String x = newBlock.substring(z);
-		int y = x.indexOf("\"") + 1;
-		String w = x.substring(y);
-		int v = w.indexOf("\\");
-		String type = w.substring(0, v);		
-		int a = newBlock.indexOf("\\\"destination\\\"") + 15;
-		String b = newBlock.substring(a);
-		int c = b.indexOf("\"") + 1;
-		String d = b.substring(c);
-		int e = d.indexOf("\\");
-		String destination = d.substring(0, e);
-		int aa = newBlock.indexOf("\"hash\"") + 6;
-		String ba = newBlock.substring(aa);
-		int ca = ba.indexOf("\"") + 1;
-		String da = ba.substring(ca);
-		int ea = da.indexOf("\"");
-		String hash = da.substring(0, ea);
-		int a8 = newBlock.indexOf("\"account\"") + 9;
-		String b8 = newBlock.substring(a8);
-		int c8 = b8.indexOf("\"") + 1;
-		String d8 = b.substring(c8);
-		int e8 = d8.indexOf("\\");
-		String acco = d8.substring(0, e8);
+		this.recentBlockHashes.add(digest);
+		if (this.recentBlockHashes.size() > 1000)
+			this.recentBlockHashes.remove(0);
 		
-		Address add = this.doesAddressStringBelongToUs(destination);
-		Address add1 = this.doesAddressStringBelongToUs(acco);
+		JsonParser parser = new JsonParser();
+		JsonObject command = parser.parse(newBlock).getAsJsonObject();
+		String unformattedBlock = command.get("block").getAsString();
+		String formattedBlock = unformattedBlock.replaceAll("\\\"", "\"").replaceAll("\\n", "");
+		JsonObject block = parser.parse(formattedBlock).getAsJsonObject();
+		String type = block.get("type").getAsString();
+		//System.out.println("New block type: " + type + ", " + formattedBlock);
+		Address address = null;
 		
+		switch (type) {
+		case "receive":
+		case "open":
+		case "send":
+			address = this.doesAddressStringBelongToUs(command.get("account").getAsString());
+			if (address == null && type.equals("send"))
+				address = this.doesAddressStringBelongToUs(block.get("destination").getAsString());
+			break;
+		default:
+			break;
+		}
 		
-		if (add != null || add1 != null) {
-			System.out.println("Block related to us!");
-			Transaction.Type ttype = Transaction.Type.valueOf(type.toUpperCase());
-			
-			switch (ttype) {
-			case OPEN:
-			case RECEIVE:
-			case SEND:
-				Address ax = add != null ? add : add1;
-				
-				int aa0 = newBlock.indexOf("\"amount\"") + 8;
-				String ba0 = newBlock.substring(aa0);
-				int ca0 = ba0.indexOf("\"") + 1;
-				String da0 = ba0.substring(ca0);
-				int ea0 = da0.indexOf("\"");
-				String amount = da0.substring(0, ea0);
-				
-				//update balance
-				BigInteger[] balpend = getAddressBalance(ax);
-				BigInteger bal = balpend[0];
-				BigInteger pend = balpend[1];
-				ax.setBalance(bal);
-				ax.setPending(pend);
-				ax.setTotalBalance(bal.add(pend));
-				
-				this.eventManager.callEvent(new EventBalanceUpdate(ax));
-				
-				this.eventManager.callEvent(new EventOurBlockReceived(ax, ttype,
-						new BigInteger(amount), destination));
-				
-				System.out.println("Both events called!");
-				break;
-			default:
-				break;
-			}
-		
-			if (add == null)
-				return;
-			
-			if (ttype != Transaction.Type.SEND)
-				return;
-		
-			this.recentBlockHashes.add(digest);
-			if (this.recentBlockHashes.size() > 10000)
-				this.recentBlockHashes.remove(0);
-		
-			add.getUnpocketedTransactions().add(hash);
+		if (address != null) {
+			BigInteger amountRaw = command.get("amount").getAsBigInteger();
+			Transaction.Type transactionType = Transaction.Type.valueOf(type.toUpperCase());
+			this.eventManager.callEvent(new EventOurBlockReceived(address, transactionType, amountRaw));
+			System.out.println("EventOurBlockReceived event called: " + transactionType + ", " + address.getAddress());
 		}
 	}
 	
 	private Address doesAddressStringBelongToUs(String xrbAddress) {
-		for (Account account : this.accounts) {
-			int max = account.getAddressesCount();
-			for (int i = 0; i < max; i++) {
-				Address address = account.getAddressForIndex(i);
-				if (address.getAddress().equals(xrbAddress))
-					return address;
+		for (int i = 0; i < this.accounts.size(); i++) {
+			Account a = this.accounts.get(i);
+			for (int ii = 0; ii < a.getMaxAddressIndex(); ii++) {
+				boolean addressAtIndex = a.isAddressAtIndex(ii);
+				if (addressAtIndex) {
+					Address address = a.getAddressAtIndex(ii);
+					if (address.getAddress().equals(xrbAddress))
+						return address;
+				}
 			}
 		}
 		return null;
@@ -402,7 +362,7 @@ public final class Rain {
 		return this.newBlockListener;
 	}
 	
-	public ThreadBalanceUpdater getBalanceUpdater() {
+	public BalanceUpdater getBalanceUpdater() {
 		return this.balanceUpdater;
 	}
 }

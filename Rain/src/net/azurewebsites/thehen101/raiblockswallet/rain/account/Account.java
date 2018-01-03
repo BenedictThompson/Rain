@@ -8,11 +8,10 @@ import static net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipula
 //import static for readability, we don't want DataManipulationUtil everywhere!
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
-import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.Blake2b;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.ED25519;
 
@@ -23,10 +22,13 @@ public final class Account {
 	public static final HashMap<Character, String> ACCOUNT_BIN_TABLE = 
 			new HashMap<Character, String>();
 	private final String defaultRep;
-	private final Rain rain;
 	
-	private final HashMap<Integer, Address> accountAddresses = 
-			new HashMap<Integer, Address>(); //an index will return an address
+	//private final HashMap<Integer, Address> accountAddresses = 
+	//		new HashMap<Integer, Address>(); //an index will return an address
+	
+	//private final ArrayList<Boolean> addressesIndex = new ArrayList<Boolean>();
+	
+	private final ArrayList<Address> addresses = new ArrayList<Address>();
 	
 	private final byte[] seed;
 	
@@ -41,25 +43,69 @@ public final class Account {
 		}
 	}
 	
-	public Account(Rain rain, byte[] seed, String defaultRep) {
-		this(rain, seed, defaultRep, 0);
+	public Account(byte[] seed, String defaultRep) {
+		this(seed, defaultRep, null);
 	}
 	
-	public Account(Rain rain, byte[] seed, String defaultRep, int addressCount) {
-		this.rain = rain;
+	public Account(byte[] seed, String defaultRep, ArrayList<Boolean> addressIndex) {
 		this.seed = seed;
 		this.defaultRep = defaultRep;
-		this.getAddressForIndex(addressCount);
+		this.initGenerateAddresses(this.addresses, addressIndex);
 	}
 	
-	public int getAddressesCount() {
-		return this.accountAddresses.size();
+	private void initGenerateAddresses(ArrayList<Address> adds, ArrayList<Boolean> shouldGenIndex) {
+		if (shouldGenIndex == null) {
+			this.addAddress(0);
+			return;
+		}
+		adds.clear();
+		for (int i = 0; i < shouldGenIndex.size(); i++) {
+			boolean shouldGen = shouldGenIndex.get(i);
+			if (shouldGen) {
+				this.addAddress(i);
+			} else {
+				this.addresses.add(i, null);
+			}
+		}
 	}
 	
-	public Address generateNextAddress() {
-		Address a = this.getAddressForIndex(this.getAddressesCount());
-		SettingsLoader.INSTANCE.saveAccounts(this.rain.getAccounts());
-		return a;
+	public ArrayList<Boolean> getShouldGenerateAddressIndex() {
+		ArrayList<Boolean> shouldGenIndex = new ArrayList<Boolean>();
+		for (int i = 0; i < this.addresses.size(); i++) {
+			boolean shouldGen = this.addresses.get(i) != null;
+			shouldGenIndex.add(i, shouldGen);
+		}
+		return shouldGenIndex;
+	}
+	
+	public void addAddress(int index) {
+		if (index >= this.addresses.size()) {
+			this.addresses.add(index, this.getAddressForIndex(index));
+			return;
+		}
+		if (this.addresses.get(index) == null)
+			this.addresses.add(index, this.getAddressForIndex(index));
+	}
+	
+	public void removeAddress(int index) {
+		if (index >= this.addresses.size())
+			return;
+		this.addresses.remove(index);
+		this.addresses.add(index, null);
+	}
+	
+	public Address getAddressAtIndex(int index) {
+		return this.addresses.get(index);
+	}
+	
+	public boolean isAddressAtIndex(int index) {
+		if (index >= this.addresses.size())
+			return false;
+		return this.addresses.get(index) != null;
+	}
+	
+	public int getMaxAddressIndex() {
+		return this.addresses.size();
 	}
 	
 	public byte[] getSeed() {
@@ -77,15 +123,18 @@ public final class Account {
 	 * @return The Address corresponding to the given index, or null if the
 	 * passed index was invalid
 	 */
-	public Address getAddressForIndex(int index) {
+	private Address getAddressForIndex(int index) {
 		//iirc the reference spec uses an unsigned int
 		if (index < 0)
 			return null;
 		
 		//if we have already generated an Address for this index, return it.
-		Address a = this.accountAddresses.get(index);
-		if (a != null)
-			return a;
+		
+		if (index < this.addresses.size()) {
+			Address a = this.addresses.get(index);
+			if (a != null)
+				return a;
+		}
 		
 		//if not, generate an address for the given index and return it.
 		final Blake2b blake2b = Blake2b.Digest.newInstance(32); //will return 32 bytes digest
@@ -98,8 +147,9 @@ public final class Account {
 				this, index, publicKey, privateKey, this.publicKeyToXRBAddress(publicKey),
 				this.defaultRep, null, true);
 		
-		//add the generated address to the address table (hashmap).
-		this.accountAddresses.put(newAddress.getIndex(), newAddress);
+		//add the generated address to the address table (hashmap) //new - this is handled by other methods
+		//this.accountAddresses.put(newAddress.getIndex(), newAddress);
+		
 		return newAddress; //and finally return the new address
 	}
 	
@@ -122,8 +172,19 @@ public final class Account {
 		for (int i = 0; i < checksum.length(); i++) {
 			checkBin += ACCOUNT_BIN_TABLE.get(checksum.charAt(i));
 		}
-		byte[] checkHex = swapEndian(hexStringToByteArray(binaryToHex(checkBin)));
-		byte[] publicKey = hexStringToByteArray(binaryToHex(pubBin));
+		
+		String hat = binaryToHex(checkBin);
+		while (hat.length() < 10)
+			hat = "0" + hat;
+		
+		byte[] checkHex = swapEndian(hexStringToByteArray(hat));
+		
+		
+		String fallaciousalbatross = binaryToHex(pubBin);
+		while (fallaciousalbatross.length() < 64)
+			fallaciousalbatross = "0" + fallaciousalbatross;
+		
+		byte[] publicKey = hexStringToByteArray(fallaciousalbatross);
 		
 		
 		final Blake2b blake = Blake2b.Digest.newInstance(5);

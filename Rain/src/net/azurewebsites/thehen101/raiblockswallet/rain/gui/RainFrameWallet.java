@@ -1,6 +1,7 @@
 package net.azurewebsites.thehen101.raiblockswallet.rain.gui;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Toolkit;
@@ -10,6 +11,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
@@ -43,12 +45,13 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
 import net.azurewebsites.thehen101.raiblockswallet.rain.event.EventBalanceUpdate;
 import net.azurewebsites.thehen101.raiblockswallet.rain.event.EventOurBlockReceived;
-import net.azurewebsites.thehen101.raiblockswallet.rain.event.EventRequestBalanceUpdate;
 import net.azurewebsites.thehen101.raiblockswallet.rain.event.base.Event;
 import net.azurewebsites.thehen101.raiblockswallet.rain.event.base.Listener;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerManager.ServerConnectionWithInfo;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DenominationConverter;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
+import net.miginfocom.layout.AC;
 
 public class RainFrameWallet extends RainFrame implements Listener {
 	private final Rain rain;
@@ -133,12 +136,28 @@ public class RainFrameWallet extends RainFrame implements Listener {
 		menuBar.add(mnNewMenu);
 		
 		JMenuItem mntmOpenRainDirectory = new JMenuItem("Open Rain directory...");
+		mntmOpenRainDirectory.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					Desktop.getDesktop().open(SettingsLoader.INSTANCE.getRainDirectory());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 		mnNewMenu.add(mntmOpenRainDirectory);
 		
 		JMenuItem mntmExportSeeds = new JMenuItem("Export seeds...");
 		mnNewMenu.add(mntmExportSeeds);
 		
 		JMenuItem mntmExit = new JMenuItem("Exit");
+		mntmExit.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				System.exit(0);
+			}
+		});
 		mnNewMenu.add(mntmExit);
 		
 		JMenu mnEdit = new JMenu("Edit");
@@ -152,7 +171,7 @@ public class RainFrameWallet extends RainFrame implements Listener {
 				try {
 					String clipboard = (String) Toolkit.getDefaultToolkit()
 							.getSystemClipboard().getData(DataFlavor.stringFlavor); 
-					rain.addAccount(new Account(rain, 
+					rain.addAccount(new Account( 
 							DataManipulationUtil.hexStringToByteArray(clipboard), 
 							rain.getDefaultRepresentative()));
 					System.out.println("Added account from clipboard");
@@ -189,10 +208,14 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			EventBalanceUpdate ebu = (EventBalanceUpdate) event;
 			for (int i = 0; i < this.webPanels.length; i++) {
 				RainTabPanel rtp = this.webPanels[i];
-				for (int ii = 0; ii < rtp.getAccount().getAddressesCount(); ii++) {
-					Address a = rtp.getAccount().getAddressForIndex(ii);
-					if (a.equals(ebu.getAddress())) {
-						rtp.updateBalance(a);
+				Account account = rtp.getAccount();
+				for (int ii = 0; ii < account.getMaxAddressIndex(); ii++) {
+					boolean isAddressAtIndex = account.isAddressAtIndex(ii);
+					if (isAddressAtIndex) {
+						Address address = account.getAddressAtIndex(ii);
+						if (address.equals(ebu.getAddress())) {
+							rtp.updateBalance(address);
+						}
 					}
 				}
 			}
@@ -202,14 +225,19 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			EventOurBlockReceived eobr = (EventOurBlockReceived) event;
 			for (int i = 0; i < this.webPanels.length; i++) {
 				RainTabPanel rtp = this.webPanels[i];
-				for (int ii = 0; ii < rtp.getAccount().getAddressesCount(); ii++) {
-					Address a = rtp.getAccount().getAddressForIndex(ii);
-					if (a.equals(eobr.getAdd())) {
-						String amount = DenominationConverter.convert(new BigDecimal(eobr.getAmount()), 
-								DenominationConverter.RAW, DenominationConverter.MRAI).toPlainString();
-						amount = amount.indexOf(".") < 0 ? amount
-								: amount.replaceAll("0*$", "").replaceAll("\\.$", "");
-						rtp.addTableRow(new String[] { eobr.getType().toString(), amount, eobr.getAddress() });
+				Account account = rtp.getAccount();
+				for (int ii = 0; ii < account.getMaxAddressIndex(); ii++) {
+					boolean isAddressAtIndex = account.isAddressAtIndex(ii);
+					if (isAddressAtIndex) {
+						Address address = account.getAddressAtIndex(ii);
+						if (address.equals(eobr.getAdd())) {
+							String amount = DenominationConverter.convert(new BigDecimal(eobr.getAmount()), 
+									DenominationConverter.RAW, DenominationConverter.MRAI).toPlainString();
+							amount = amount.indexOf(".") < 0 ? amount
+									: amount.replaceAll("0*$", "").replaceAll("\\.$", "");
+							System.out.println("Table row updated");
+							rtp.addTableRow(new String[] { eobr.getType().toString(), amount, eobr.getAdd().getAddress() });
+						}
 					}
 				}
 			}
@@ -233,7 +261,7 @@ public class RainFrameWallet extends RainFrame implements Listener {
 		private JTable table;
 		private WebLabel selectedAddress;
 		private WebButton removeAddress;
-		private WebLabel notifyCopy;
+		private WebLabel status;
 		private WebButton copyAddress;
 		private JScrollPane scrollPane;
 		private WebLabel addressXRBBalance;
@@ -241,6 +269,7 @@ public class RainFrameWallet extends RainFrame implements Listener {
 		private WebButton sendXRBButton;
 		private WebComboBox addresses;
 		private WebButton createAddress;
+		private long fadeTime;
 		
 		public RainTabPanel(Account account) {
 			this.acc = account;
@@ -276,7 +305,7 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			} catch (Exception e) {
 				addressXRBBalance.setText("XRB: Not yet known");
 				addressUSDBalance.setText("USD: Not yet known");
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
 		}
 		
@@ -288,18 +317,47 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			if (newRow.length != 3)
 				return;
 			
-			((DefaultTableModel) this.table.getModel()).addRow(newRow);
+			((DefaultTableModel) this.table.getModel()).insertRow(0, newRow);
+		}
+		
+		private void notifyUser(String s, Color c) {
+			status.setForeground(c);
+			status.setText(s);
+			fadeTime = System.currentTimeMillis() + 1000L;
+			Thread notify = new Thread() {
+				@Override
+				public void run() {
+					try {
+						final long ft = fadeTime;
+						while (System.currentTimeMillis() < fadeTime)
+							Thread.sleep(1);
+						
+						if (ft != fadeTime)
+							return;
+						
+						Color prev = status.getForeground();
+						for (int opacity = 255; opacity > 0; opacity--) {
+							status.setForeground(
+									new Color(prev.getRed(), prev.getGreen(), prev.getBlue(), opacity));
+							Thread.sleep(1);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			};
+			notify.start();
 		}
 		
 		private void setup() {
 			this.setLayout(null);
 			
 			//label to notify the user the address has been copied
-			notifyCopy = new WebLabel("Address copied to clipboard");
-			notifyCopy.setForeground(new Color(0, 100, 0, 0));
-			notifyCopy.setFont(new Font("Tahoma", Font.PLAIN, 10));
-			notifyCopy.setBounds(129, 46, 445, 15);
-			this.add(notifyCopy);
+			status = new WebLabel("");
+			status.setForeground(new Color(0, 0, 0, 0));
+			status.setFont(new Font("Tahoma", Font.PLAIN, 10));
+			status.setBounds(129, 46, 445, 15);
+			this.add(status);
 			
 			//button to copy selected Address
 			copyAddress = new WebButton("Copy");
@@ -310,23 +368,7 @@ public class RainFrameWallet extends RainFrame implements Listener {
 					StringSelection selection = new StringSelection(selectedAddress.getText());
 					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
 					
-					Thread notify = new Thread() {
-						@Override
-						public void run() {
-							try {
-								notifyCopy.setForeground(new Color(0, 100, 0, 255));
-								Thread.sleep(750);
-								
-								for (int opacity = 255; opacity > 0; opacity--) {
-									notifyCopy.setForeground(new Color(0, 100, 0, opacity));
-									Thread.sleep(1);
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-					};
-					notify.start();
+					notifyUser("Address copied to clipboard", new Color(0, 100, 0));
 				}
 			});
 			this.add(copyAddress);
@@ -386,9 +428,14 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			
 			//combobox to choose address from
 			addresses = new WebComboBox();
-			for (int ii = 0; ii < acc.getAddressesCount(); ii++) {
-				addresses.addItem(acc.getAddressForIndex(ii));
+			
+			for (int o = 0; o < acc.getMaxAddressIndex(); o++) {
+				boolean valid = acc.isAddressAtIndex(o);
+				if (valid) {
+					addresses.addItem(acc.getAddressAtIndex(o));
+				}
 			}
+			
 			addresses.setBounds(11, 12, 110, 25);
 			addresses.addItemListener(new ItemListener() {
 				@Override
@@ -397,10 +444,11 @@ public class RainFrameWallet extends RainFrame implements Listener {
 						sendXRBButton.setEnabled(false);
 						Address ad = (Address) event.getItem();
 						updateBalance(ad);
-						rain.getEventManager().callEvent(new EventRequestBalanceUpdate(ad));
+						rain.getBalanceUpdater().updateBalance(ad);
 						selectedAddress.setText(ad.getAddress());
+						
+						notifyUser("Address switched", new Color(0, 0, 0));
 					}
-
 				}
 			});
 			addresses.setSelectedIndex(0);
@@ -412,15 +460,60 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			createAddress.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent ae) {
-					Address newAddress = acc.generateNextAddress();
-					addresses.addItem(newAddress);
-					addresses.setSelectedItem(newAddress);
+					Address aaa = null;
+					for (int a = 0; a < Integer.MAX_VALUE; a++) {
+						boolean isAddressAlreadyThere = acc.isAddressAtIndex(a);
+						System.out.println(isAddressAlreadyThere);
+						if (!isAddressAlreadyThere) {
+							acc.addAddress(a);
+							aaa = acc.getAddressAtIndex(a);
+							break;
+						}
+					}
+					System.out.println(aaa.getAddress());
+					aaa.setIsOpened(false);
+					addresses.addItem(aaa);
+					addresses.setSelectedItem(aaa);
+					SettingsLoader.INSTANCE.saveAccounts(rain.getAccounts());
+					rain.getPOWFinder().syncArrayAndMap();
+					SettingsLoader.INSTANCE.cachePOW(rain.getPOWFinder());
+					
+					notifyUser("Address created", new Color(0, 100, 0));
 				}
 			});
 			this.add(createAddress);
 			
 			//remove address for account
 			removeAddress = new WebButton("-");
+			removeAddress.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent ae) {
+					if (addresses.getItemCount() <= 1) {
+						notifyUser("Can't remove last address", new Color(200, 0, 0));
+						return;
+					}
+					
+					Address addressToRemove = (Address) addresses.getSelectedItem();
+					int removeIndex = -1;
+					for (int b = 0; b < acc.getMaxAddressIndex(); b++) {
+						boolean valid = acc.isAddressAtIndex(b);
+						if (valid) {
+							Address az = acc.getAddressAtIndex(b);
+							if (az.equals(addressToRemove)) {
+								removeIndex = b;
+							}
+						}
+					}
+					acc.removeAddress(removeIndex);
+					addresses.removeItem(addressToRemove);
+					addresses.setSelectedIndex(0);
+					SettingsLoader.INSTANCE.saveAccounts(rain.getAccounts());
+					rain.getPOWFinder().syncArrayAndMap();
+					SettingsLoader.INSTANCE.cachePOW(rain.getPOWFinder());
+					
+					notifyUser("Address removed", new Color(200, 0, 0));
+				}
+			});
 			removeAddress.setBounds(11, 40, 26, 25);
 			this.add(removeAddress);
 			

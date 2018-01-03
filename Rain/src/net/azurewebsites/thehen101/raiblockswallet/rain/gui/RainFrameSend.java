@@ -128,6 +128,10 @@ public class RainFrameSend extends RainFrame {
 		btnSet.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				if (amount == null)
+					return;
+				if (amount.getValue() == null)
+					return;
 				System.out.println(amount.getValue().toString());
 				if (!amount.getValue().toString().matches("^-?\\d+\\.?\\d*$")) {
 					amount.setText("");

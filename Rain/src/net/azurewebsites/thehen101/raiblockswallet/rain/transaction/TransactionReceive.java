@@ -32,7 +32,7 @@ public class TransactionReceive extends Transaction {
 	public String getAsJSON() {
 		return 
 			"{" + 
-			"\"action\": \"process\"," + 
+				"\"action\": \"process\"," + 
 				"\"block\": \"" + 
 				"{" + 
 					"\\\"type\\\": \\\"receive\\\"," + 

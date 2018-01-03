@@ -40,18 +40,12 @@ public class Main {
 			for (LoadedServer ls : servers)
 				serverConnections.add(new ServerConnection(ls.getHostnameOrIP(), ls.getPort(), null));
 			
-			int powThreads = Runtime.getRuntime().availableProcessors() - 1;
-			if (powThreads == 0)
-				powThreads = 1;
 			
-			Rain rain = new Rain(serverConnections, powThreads, representatives);
+			for (LoadedAccount la : accs)
+				accounts.add(new Account(la.getSeed(), 
+						representatives[new Random().nextInt(representatives.length)], la.getGeneratedIndex()));
 			
-			for (LoadedAccount la : accs) 
-				accounts.add(new Account(rain, la.getSeed(), 
-						representatives[new Random().nextInt(representatives.length)], la.getMaxIndex()));
-			
-			for (Account a : accounts)
-				rain.addAccount(a);
+			Rain rain = new Rain(serverConnections, accounts, representatives);
 			
 			for (ServerConnection connection : serverConnections)
 				if (connection.getNewBlockListener() == null)
