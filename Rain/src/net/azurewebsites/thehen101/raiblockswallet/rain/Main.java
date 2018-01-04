@@ -10,7 +10,6 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.gui.RainFramePassword;
 import net.azurewebsites.thehen101.raiblockswallet.rain.gui.RainFrameSplash;
 import net.azurewebsites.thehen101.raiblockswallet.rain.gui.RainFrameWallet;
 import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerConnection;
-import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.LoadedAccount;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.LoadedServer;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;

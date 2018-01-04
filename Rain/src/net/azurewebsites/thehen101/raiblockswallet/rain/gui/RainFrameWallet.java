@@ -5,14 +5,15 @@ import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 
 import javax.swing.Box;
@@ -39,6 +40,7 @@ import com.alee.laf.label.WebLabel;
 import com.alee.laf.menu.WebMenuBar;
 import com.alee.laf.panel.WebPanel;
 import com.alee.laf.progressbar.WebProgressBar;
+import com.google.gson.GsonBuilder;
 
 import net.azurewebsites.thehen101.raiblockswallet.rain.Rain;
 import net.azurewebsites.thehen101.raiblockswallet.rain.account.Account;
@@ -51,7 +53,6 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.server.ServerManager.Ser
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DataManipulationUtil;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.DenominationConverter;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
-import net.miginfocom.layout.AC;
 
 public class RainFrameWallet extends RainFrame implements Listener {
 	private final Rain rain;
@@ -63,7 +64,7 @@ public class RainFrameWallet extends RainFrame implements Listener {
 		this.rain = rain;
 		webPanels = this.getPanelsForAccounts(this.rain.getAccounts());
 		this.rain.getEventManager().addListener(this);
-		this.frame = new JFrame("Rain");
+		this.frame = new JFrame("Rain " + Rain.VERSION);
 		this.panel = new JPanel();
 		
         // Simple status bar
@@ -148,9 +149,6 @@ public class RainFrameWallet extends RainFrame implements Listener {
 		});
 		mnNewMenu.add(mntmOpenRainDirectory);
 		
-		JMenuItem mntmExportSeeds = new JMenuItem("Export seeds...");
-		mnNewMenu.add(mntmExportSeeds);
-		
 		JMenuItem mntmExit = new JMenuItem("Exit");
 		mntmExit.addActionListener(new ActionListener() {
 			@Override
@@ -167,7 +165,6 @@ public class RainFrameWallet extends RainFrame implements Listener {
 		mntmCopyAddressTo.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				System.out.println("MEME");
 				try {
 					String clipboard = (String) Toolkit.getDefaultToolkit()
 							.getSystemClipboard().getData(DataFlavor.stringFlavor); 
@@ -189,6 +186,34 @@ public class RainFrameWallet extends RainFrame implements Listener {
 			}
 		});
 		mnEdit.add(mntmCopyAddressTo);
+		
+		JMenuItem clipExport = new JMenuItem("Export seeds to clipboard");
+		clipExport.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					ArrayList<String> seeds = new ArrayList<String>();
+					for (int i = 0; i < rain.getAccounts().size(); i++)
+						seeds.add(DataManipulationUtil.bytesToHex(rain.getAccounts().get(i).getSeed()));
+					
+					System.out.println(seeds.size() + " seeds");
+					
+					String json = new GsonBuilder().setPrettyPrinting().create().toJson(seeds);
+					
+				    StringSelection selection = new StringSelection(json);
+				    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		mnEdit.add(clipExport);
+		
+		//update balance for selected address
+		RainTabPanel rtp = (RainTabPanel) tabbedPane.getSelectedComponent();
+		Address toUpdate = (Address) rtp.addresses.getSelectedItem();
+		rain.getBalanceUpdater().updateBalance(toUpdate);
+		
 		this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.frame.setResizable(false);
 		this.frame.setVisible(true);
@@ -291,10 +316,21 @@ public class RainFrameWallet extends RainFrame implements Listener {
 
 				amountString = amountString.indexOf(".") < 0 ? amountString
 						: amountString.replaceAll("0*$", "").replaceAll("\\.$", "");
+				
+				boolean hasUnpocketed = !address.getRawPending().equals(BigInteger.ZERO);
+				
+				BigDecimal amountUnpocketed = DenominationConverter.convert(new BigDecimal(address.getRawPending()),
+						DenominationConverter.RAW, DenominationConverter.MRAI);
 
-				addressXRBBalance.setText("XRB: " + amountString);
+				String amountStringUnpocketed = amountUnpocketed.toPlainString();
 
-				String usdString = amount.multiply(new BigDecimal(rain.getPrice())).toPlainString();
+				amountStringUnpocketed = amountStringUnpocketed.indexOf(".") < 0 ? amountStringUnpocketed
+						: amountStringUnpocketed.replaceAll("0*$", "").replaceAll("\\.$", "");
+
+				addressXRBBalance.setText("XRB: " + amountString 
+						+ (hasUnpocketed ? (" (" + amountStringUnpocketed + " XRB unpocketed)") : ""));
+
+				String usdString = amount.multiply(new BigDecimal(rain.getPriceUpdater().getPrice())).toPlainString();
 
 				usdString = usdString.indexOf(".") < 0 ? usdString
 						: usdString.replaceAll("0*$", "").replaceAll("\\.$", "");
@@ -444,7 +480,13 @@ public class RainFrameWallet extends RainFrame implements Listener {
 						sendXRBButton.setEnabled(false);
 						Address ad = (Address) event.getItem();
 						updateBalance(ad);
-						rain.getBalanceUpdater().updateBalance(ad);
+						Thread updateBalance = new Thread() {
+							@Override
+							public void run() {
+								rain.getBalanceUpdater().updateBalance(ad);
+							}
+						};
+						updateBalance.start();
 						selectedAddress.setText(ad.getAddress());
 						
 						notifyUser("Address switched", new Color(0, 0, 0));

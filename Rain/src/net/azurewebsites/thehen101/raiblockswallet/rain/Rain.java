@@ -28,10 +28,12 @@ import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.ThreadTransa
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.Transaction;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionChange;
 import net.azurewebsites.thehen101.raiblockswallet.rain.transaction.TransactionSend;
+import net.azurewebsites.thehen101.raiblockswallet.rain.util.ThreadPriceUpdater;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.file.SettingsLoader;
 import net.azurewebsites.thehen101.raiblockswallet.rain.util.hash.POWFinder;
 
 public final class Rain {
+	public static final String VERSION = "v1.0";
 	private final ArrayList<byte[]> recentBlockHashes;
 	private final ArrayList<Account> accounts;
 	private final ServerManager serverManager;
@@ -41,6 +43,7 @@ public final class Rain {
 	private final EventManager eventManager;
 	private final String[] defaultReps;
 	private final BalanceUpdater balanceUpdater;
+	private final ThreadPriceUpdater threadPriceUpdater;
 	
 	private MessageDigest md;
 	
@@ -69,6 +72,9 @@ public final class Rain {
 		this.transactionPocketer = new ThreadTransactionPocketer(this);
 		this.transactionPocketer.start();
 		
+		this.threadPriceUpdater = new ThreadPriceUpdater(this, 30000);
+		this.threadPriceUpdater.start();
+		
 		//set open status
 		for (int i = 0; i < getAccounts().size(); i++) {
 			Account a = getAccounts().get(i);
@@ -87,6 +93,10 @@ public final class Rain {
 		System.out.println("Rain instance initialised");
 	}
 	
+	public ThreadPriceUpdater getPriceUpdater() {
+		return this.threadPriceUpdater;
+	}
+	
 	public EventManager getEventManager() {
 		return this.eventManager;
 	}
@@ -100,38 +110,6 @@ public final class Rain {
 	
 	public String getDefaultRepresentative() {
 		return this.defaultReps[new Random().nextInt(this.defaultReps.length)];
-	}
-	
-	public String getPrice() {
-		String[] price = new String[1];
-		price[0] = null;
-		String body = "{ \"command\": \"price\" }";
-		RequestWithHeader request = new RequestWithHeader(false, body);
-		ListenerServerResponse listener = new ListenerServerResponse() {
-			@Override
-			public void onResponse(RequestWithHeader initialRequest, RequestWithHeader receivedRequest) {
-				if (!Arrays.equals(request.getRequestBytes(), initialRequest.getRequestBytes()))
-					return;
-				
-				String json = new String(receivedRequest.getRequestBytes()).trim();
-				
-				JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);
-				JsonPrimitive p = jsonObject.getAsJsonPrimitive("price");
-				
-				price[0] = p.getAsString();
-			}
-		};
-		this.serverManager.addListenerToAll(listener);
-		this.serverManager.addToConnectedServerQueue(request);
-		while (price[0] == null) {
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		this.serverManager.removeListenerFromAll(listener);
-		return price[0];
 	}
 	
 	public BigInteger[] getAddressBalance(final Address address) {

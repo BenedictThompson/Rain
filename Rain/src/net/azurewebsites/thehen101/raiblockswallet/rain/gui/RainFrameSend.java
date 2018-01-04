@@ -36,8 +36,6 @@ public class RainFrameSend extends RainFrame {
 	private JButton btnSend;
 	private JLabel labelAmount;
 	
-	private BigDecimal amountSend;
-	
 	private boolean amountValid;
 	private boolean addressValid;
 	private JButton btnSet;
@@ -201,7 +199,7 @@ public class RainFrameSend extends RainFrame {
 		if (this.addressValid && this.amountValid) {
 			this.btnSend.setEnabled(true);
 			BigDecimal bd = new BigDecimal(amount.getText());
-			String usdString = bd.multiply(new BigDecimal(rain.getPrice())).toPlainString();
+			String usdString = bd.multiply(new BigDecimal(rain.getPriceUpdater().getPrice())).toPlainString();
 			usdString = usdString.indexOf(".") < 0 ? usdString
 					: usdString.replaceAll("0*$", "").replaceAll("\\.$", "");
 			this.labelAmount.setText("$" + usdString);

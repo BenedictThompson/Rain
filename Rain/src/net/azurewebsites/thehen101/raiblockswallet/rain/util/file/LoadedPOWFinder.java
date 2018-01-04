@@ -3,8 +3,6 @@ package net.azurewebsites.thehen101.raiblockswallet.rain.util.file;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import net.azurewebsites.thehen101.raiblockswallet.rain.account.Address;
-
 public class LoadedPOWFinder {
 	private final int threadsToUse;
 	private final HashMap<String, String> powMap;
