@@ -1,5 +1,5 @@
 # Rain
-A light RaiBlocks wallet written in Java. Compatible across Windows, Mac, Linux and any other platform that supports Java 8.
+A light Nano wallet written in Java. Compatible across Windows, Mac, Linux and any other platform that supports Java 8.
 
 #### Version 1.0 released! https://github.com/thehen101/Rain/releases
 
