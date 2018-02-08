@@ -99,7 +99,7 @@ public class RainFrameSend extends RainFrame {
 		labelAmount.setBounds(332, 126, 109, 15);
 		frame.getContentPane().add(labelAmount);
 		
-		JLabel lblNewLabel_1 = new JLabel("Amount (XRB):");
+		JLabel lblNewLabel_1 = new JLabel("Amount (Nano):");
 		lblNewLabel_1.setBounds(12, 126, 85, 15);
 		frame.getContentPane().add(lblNewLabel_1);
 		
@@ -138,7 +138,7 @@ public class RainFrameSend extends RainFrame {
 					BigDecimal bd = new BigDecimal(amount.getValue().toString());
 					if (bd != null) {
 						amountValid = true;
-						sendingXRB.setText(bd.toPlainString() + " XRB");
+						sendingXRB.setText(bd.toPlainString() + " Nano");
 						
 						BigInteger remainingRaw = sendFrom.getRawBalance().subtract(DenominationConverter
 								.convert(bd, DenominationConverter.MRAI, DenominationConverter.RAW).toBigIntegerExact());
@@ -152,7 +152,7 @@ public class RainFrameSend extends RainFrame {
 						remainingXRB.setText(DenominationConverter
 								.convert(new BigDecimal(remainingRaw),
 										DenominationConverter.RAW, DenominationConverter.MRAI)
-								.toPlainString() + " XRB");
+								.toPlainString() + " Nano");
 					}
 				}
 				enableSend();
